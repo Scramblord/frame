@@ -66,7 +66,9 @@ export default async function ExpertPublicPage({ params }: PageProps) {
     notFound();
   }
 
-  const { supabase, profile, expert } = await loadPublicExpertPageData(id);
+  const { supabase, profile, expert, services } = await loadPublicExpertPageData(
+    id,
+  );
 
   if (!profile) {
     notFound();
@@ -140,16 +142,11 @@ export default async function ExpertPublicPage({ params }: PageProps) {
     .slice(0, 2)
     .toUpperCase();
 
-  const minM = expert?.min_session_minutes ?? 30;
-  const maxM = expert?.max_session_minutes ?? 120;
-
   function formatSessionRange(a: number, b: number) {
     const fmt = (m: number) =>
       m < 60 ? `${m} min` : m % 60 ? `${Math.floor(m / 60)} hr ${m % 60} min` : `${m / 60} hr`;
     return `${fmt(a)} – ${fmt(b)}`;
   }
-
-  const bookBase = `/book/${profile.id}`;
 
   return (
     <div className="min-h-full flex-1 bg-gradient-to-b from-zinc-100 to-zinc-200/90 dark:from-zinc-950 dark:to-zinc-900">
@@ -270,109 +267,121 @@ export default async function ExpertPublicPage({ params }: PageProps) {
               </section>
             ) : null}
 
-            {expert ? (
             <section>
               <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                Session length
-              </h2>
-              <p className="mt-2 text-lg font-medium text-zinc-900 dark:text-zinc-100">
-                {formatSessionRange(minM, maxM)}
-              </p>
-            </section>
-            ) : null}
-
-            <section>
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                Consultation types
+                Services
               </h2>
               {!expert ? (
                 <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                  Consultation types and pricing will be listed here once available.
+                  Services and pricing will be listed here once available.
+                </p>
+              ) : services.length === 0 ? (
+                <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+                  This expert has not published any services yet.
                 </p>
               ) : (
-                <>
-              <ul className="mt-4 space-y-4">
-                {expert.offers_messaging && expert.messaging_flat_rate != null ? (
-                  <li className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-4 dark:border-zinc-700 dark:bg-zinc-800/50 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="font-medium text-zinc-900 dark:text-zinc-100">
-                        Messaging
-                      </p>
-                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                        Live in-app messaging — flat fee per session
-                      </p>
-                      <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                        {formatGbp(Number(expert.messaging_flat_rate))}
-                      </p>
-                    </div>
-                    <Link
-                      href={`${bookBase}?consultation=messaging`}
-                      className="inline-flex shrink-0 items-center justify-center rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                    >
-                      Book now
-                    </Link>
-                  </li>
-                ) : null}
-                {expert.offers_audio && expert.audio_hourly_rate != null ? (
-                  <li className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-4 dark:border-zinc-700 dark:bg-zinc-800/50 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="font-medium text-zinc-900 dark:text-zinc-100">
-                        Audio
-                      </p>
-                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                        Voice sessions — per hour
-                      </p>
-                      <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                        {formatGbp(Number(expert.audio_hourly_rate))}
-                        <span className="text-sm font-normal text-zinc-500">
-                          {" "}
-                          / hr
-                        </span>
-                      </p>
-                    </div>
-                    <Link
-                      href={`${bookBase}?consultation=audio`}
-                      className="inline-flex shrink-0 items-center justify-center rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                    >
-                      Book now
-                    </Link>
-                  </li>
-                ) : null}
-                {expert.offers_video && expert.video_hourly_rate != null ? (
-                  <li className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-4 dark:border-zinc-700 dark:bg-zinc-800/50 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="font-medium text-zinc-900 dark:text-zinc-100">
-                        Video
-                      </p>
-                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                        Video calls — per hour
-                      </p>
-                      <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                        {formatGbp(Number(expert.video_hourly_rate))}
-                        <span className="text-sm font-normal text-zinc-500">
-                          {" "}
-                          / hr
-                        </span>
-                      </p>
-                    </div>
-                    <Link
-                      href={`${bookBase}?consultation=video`}
-                      className="inline-flex shrink-0 items-center justify-center rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                    >
-                      Book now
-                    </Link>
-                  </li>
-                ) : null}
-              </ul>
-              {expert &&
-              !expert.offers_messaging &&
-              !expert.offers_audio &&
-              !expert.offers_video ? (
-                <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                  This expert has not enabled booking types yet.
-                </p>
-              ) : null}
-                </>
+                <ul className="mt-4 space-y-8">
+                  {services.map((svc) => {
+                    const book = (type: "messaging" | "audio" | "video") =>
+                      `/book/${profile.id}/${svc.id}?type=${type}`;
+                    return (
+                      <li
+                        key={svc.id}
+                        className="rounded-2xl border border-zinc-200 bg-zinc-50/80 p-5 dark:border-zinc-700 dark:bg-zinc-800/40 sm:p-6"
+                      >
+                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                          {svc.name}
+                        </h3>
+                        {svc.description ? (
+                          <p className="mt-2 whitespace-pre-wrap text-sm text-zinc-600 dark:text-zinc-400">
+                            {svc.description}
+                          </p>
+                        ) : null}
+                        <p className="mt-3 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                          Session length:{" "}
+                          {formatSessionRange(
+                            svc.min_session_minutes,
+                            svc.max_session_minutes,
+                          )}
+                        </p>
+                        <ul className="mt-4 space-y-3">
+                          {svc.offers_messaging &&
+                          svc.messaging_flat_rate != null ? (
+                            <li className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-4 dark:border-zinc-600 dark:bg-zinc-900/60 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <p className="font-medium text-zinc-900 dark:text-zinc-100">
+                                  Messaging
+                                </p>
+                                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                  Live in-app messaging — flat fee per session
+                                </p>
+                                <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                                  {formatGbp(Number(svc.messaging_flat_rate))}
+                                </p>
+                              </div>
+                              <Link
+                                href={book("messaging")}
+                                className="inline-flex shrink-0 items-center justify-center rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                              >
+                                Book now
+                              </Link>
+                            </li>
+                          ) : null}
+                          {svc.offers_audio && svc.audio_hourly_rate != null ? (
+                            <li className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-4 dark:border-zinc-600 dark:bg-zinc-900/60 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <p className="font-medium text-zinc-900 dark:text-zinc-100">
+                                  Audio
+                                </p>
+                                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                  Voice sessions — per hour
+                                </p>
+                                <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                                  {formatGbp(Number(svc.audio_hourly_rate))}
+                                  <span className="text-sm font-normal text-zinc-500">
+                                    {" "}
+                                    / hr
+                                  </span>
+                                </p>
+                              </div>
+                              <Link
+                                href={book("audio")}
+                                className="inline-flex shrink-0 items-center justify-center rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                              >
+                                Book now
+                              </Link>
+                            </li>
+                          ) : null}
+                          {svc.offers_video && svc.video_hourly_rate != null ? (
+                            <li className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-4 dark:border-zinc-600 dark:bg-zinc-900/60 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <p className="font-medium text-zinc-900 dark:text-zinc-100">
+                                  Video
+                                </p>
+                                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                  Video calls — per hour
+                                </p>
+                                <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                                  {formatGbp(Number(svc.video_hourly_rate))}
+                                  <span className="text-sm font-normal text-zinc-500">
+                                    {" "}
+                                    / hr
+                                  </span>
+                                </p>
+                              </div>
+                              <Link
+                                href={book("video")}
+                                className="inline-flex shrink-0 items-center justify-center rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                              >
+                                Book now
+                              </Link>
+                            </li>
+                          ) : null}
+                        </ul>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
             </section>
 

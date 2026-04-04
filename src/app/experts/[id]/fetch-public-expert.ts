@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import type { ServiceRow } from "@/lib/experts-marketplace";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -42,11 +43,17 @@ export async function loadPublicExpertPageData(id: string) {
     .from("profiles")
     .select(PROFILE_SELECT)
     .eq("id", id)
-    .eq("role", "expert")
     .maybeSingle();
 
   if (byProfileId.data) {
-    profile = byProfileId.data as PublicExpertProfileRow;
+    const { data: ep } = await supabase
+      .from("expert_profiles")
+      .select("id")
+      .eq("user_id", byProfileId.data.user_id)
+      .maybeSingle();
+    if (ep) {
+      profile = byProfileId.data as PublicExpertProfileRow;
+    }
   }
 
   if (!profile) {
@@ -61,7 +68,6 @@ export async function loadPublicExpertPageData(id: string) {
         .from("profiles")
         .select(PROFILE_SELECT)
         .eq("user_id", byExpertPk.data.user_id)
-        .eq("role", "expert")
         .maybeSingle();
       if (p.data) profile = p.data as PublicExpertProfileRow;
     }
@@ -72,14 +78,27 @@ export async function loadPublicExpertPageData(id: string) {
       .from("profiles")
       .select(PROFILE_SELECT)
       .eq("user_id", id)
-      .eq("role", "expert")
       .maybeSingle();
 
-    if (byUserId.data) profile = byUserId.data as PublicExpertProfileRow;
+    if (byUserId.data) {
+      const { data: ep } = await supabase
+        .from("expert_profiles")
+        .select("id")
+        .eq("user_id", byUserId.data.user_id)
+        .maybeSingle();
+      if (ep) {
+        profile = byUserId.data as PublicExpertProfileRow;
+      }
+    }
   }
 
   if (!profile) {
-    return { supabase, profile: null, expert: null as ExpertDetailsRow | null };
+    return {
+      supabase,
+      profile: null,
+      expert: null as ExpertDetailsRow | null,
+      services: [] as ServiceRow[],
+    };
   }
 
   const { data: expert } = await supabase
@@ -88,9 +107,17 @@ export async function loadPublicExpertPageData(id: string) {
     .eq("user_id", profile.user_id)
     .maybeSingle();
 
+  const { data: serviceRows } = await supabase
+    .from("services")
+    .select("*")
+    .eq("expert_user_id", profile.user_id)
+    .eq("is_active", true)
+    .order("created_at", { ascending: true });
+
   return {
     supabase,
     profile,
     expert: (expert ?? null) as ExpertDetailsRow | null,
+    services: (serviceRows ?? []) as ServiceRow[],
   };
 }

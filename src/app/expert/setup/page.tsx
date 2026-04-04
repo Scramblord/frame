@@ -2,26 +2,47 @@
 
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const SESSION_OPTIONS: number[] = [];
 for (let m = 15; m <= 8 * 60; m += 15) {
   SESSION_OPTIONS.push(m);
 }
 
-type ExpertRow = {
-  bio: string | null;
-  keywords: string[] | null;
-  timezone: string | null;
-  min_session_minutes: number | null;
-  max_session_minutes: number | null;
-  offers_messaging: boolean | null;
-  messaging_flat_rate: number | null;
-  offers_audio: boolean | null;
-  offers_video: boolean | null;
-  audio_hourly_rate: number | null;
-  video_hourly_rate: number | null;
+function newClientKey() {
+  return `svc-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+type ServiceForm = {
+  clientKey: string;
+  id?: string;
+  name: string;
+  description: string;
+  min_session_minutes: number;
+  max_session_minutes: number;
+  offers_messaging: boolean;
+  messaging_flat_rate: string;
+  offers_audio: boolean;
+  audio_hourly_rate: string;
+  offers_video: boolean;
+  video_hourly_rate: string;
 };
+
+function emptyService(): ServiceForm {
+  return {
+    clientKey: newClientKey(),
+    name: "",
+    description: "",
+    min_session_minutes: 30,
+    max_session_minutes: 120,
+    offers_messaging: false,
+    messaging_flat_rate: "",
+    offers_audio: false,
+    audio_hourly_rate: "",
+    offers_video: false,
+    video_hourly_rate: "",
+  };
+}
 
 export default function ExpertSetupPage() {
   const router = useRouter();
@@ -36,27 +57,10 @@ export default function ExpertSetupPage() {
   const [tagInput, setTagInput] = useState("");
   const [timezone, setTimezone] = useState("");
 
-  const [minSession, setMinSession] = useState(30);
-  const [maxSession, setMaxSession] = useState(120);
-
-  const [offersMessaging, setOffersMessaging] = useState(false);
-  const [messagingFlatRate, setMessagingFlatRate] = useState("");
-  const [offersAudio, setOffersAudio] = useState(false);
-  const [audioHourly, setAudioHourly] = useState("");
-  const [offersVideo, setOffersVideo] = useState(false);
-  const [videoHourly, setVideoHourly] = useState("");
+  const [services, setServices] = useState<ServiceForm[]>([emptyService()]);
 
   const sessionSelectClass =
     "mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 shadow-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:ring-zinc-100/20";
-
-  const minOptions = useMemo(
-    () => SESSION_OPTIONS.filter((m) => m <= maxSession),
-    [maxSession],
-  );
-  const maxOptions = useMemo(
-    () => SESSION_OPTIONS.filter((m) => m >= minSession),
-    [minSession],
-  );
 
   const load = useCallback(async () => {
     setError(null);
@@ -70,48 +74,53 @@ export default function ExpertSetupPage() {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role")
+      .select("id")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (!profile || profile.role !== "expert") {
-      router.replace("/dashboard");
+    if (!profile) {
+      router.replace("/onboarding");
       return;
     }
 
     const { data: row } = await supabase
       .from("expert_profiles")
-      .select(
-        "bio, keywords, timezone, min_session_minutes, max_session_minutes, offers_messaging, messaging_flat_rate, offers_audio, offers_video, audio_hourly_rate, video_hourly_rate",
-      )
+      .select("bio, keywords, timezone")
       .eq("user_id", user.id)
       .maybeSingle();
 
     if (row) {
-      const r = row as ExpertRow;
-      if (r.bio) setBio(r.bio);
-      if (r.keywords?.length) setTags(r.keywords);
-      if (r.timezone) setTimezone(r.timezone);
-      if (r.min_session_minutes != null) setMinSession(r.min_session_minutes);
-      if (r.max_session_minutes != null) setMaxSession(r.max_session_minutes);
-      if (r.offers_messaging) {
-        setOffersMessaging(true);
-        if (r.messaging_flat_rate != null) {
-          setMessagingFlatRate(String(r.messaging_flat_rate));
-        }
-      }
-      if (r.offers_audio) {
-        setOffersAudio(true);
-        if (r.audio_hourly_rate != null) {
-          setAudioHourly(String(r.audio_hourly_rate));
-        }
-      }
-      if (r.offers_video) {
-        setOffersVideo(true);
-        if (r.video_hourly_rate != null) {
-          setVideoHourly(String(r.video_hourly_rate));
-        }
-      }
+      if (row.bio) setBio(row.bio);
+      if (row.keywords?.length) setTags(row.keywords);
+      if (row.timezone) setTimezone(row.timezone);
+    }
+
+    const { data: serviceRows } = await supabase
+      .from("services")
+      .select("*")
+      .eq("expert_user_id", user.id)
+      .order("created_at", { ascending: true });
+
+    if (serviceRows?.length) {
+      setServices(
+        serviceRows.map((r) => ({
+          clientKey: newClientKey(),
+          id: r.id,
+          name: r.name,
+          description: r.description ?? "",
+          min_session_minutes: r.min_session_minutes,
+          max_session_minutes: r.max_session_minutes,
+          offers_messaging: r.offers_messaging,
+          messaging_flat_rate:
+            r.messaging_flat_rate != null ? String(r.messaging_flat_rate) : "",
+          offers_audio: r.offers_audio,
+          audio_hourly_rate:
+            r.audio_hourly_rate != null ? String(r.audio_hourly_rate) : "",
+          offers_video: r.offers_video,
+          video_hourly_rate:
+            r.video_hourly_rate != null ? String(r.video_hourly_rate) : "",
+        })),
+      );
     }
 
     try {
@@ -154,6 +163,25 @@ export default function ExpertSetupPage() {
     return `${h} hr ${rem} min`;
   }
 
+  function updateService(
+    clientKey: string,
+    patch: Partial<ServiceForm>,
+  ) {
+    setServices((prev) =>
+      prev.map((s) => (s.clientKey === clientKey ? { ...s, ...patch } : s)),
+    );
+  }
+
+  function addService() {
+    setServices((prev) => [...prev, emptyService()]);
+  }
+
+  function removeService(clientKey: string) {
+    setServices((prev) =>
+      prev.length <= 1 ? prev : prev.filter((s) => s.clientKey !== clientKey),
+    );
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -166,41 +194,48 @@ export default function ExpertSetupPage() {
       setError("Please select your timezone.");
       return;
     }
-    if (!offersMessaging && !offersAudio && !offersVideo) {
-      setError("Enable at least one consultation type.");
+
+    if (services.length === 0) {
+      setError("Add at least one service.");
       return;
     }
 
-    let messagingRate: number | null = null;
-    if (offersMessaging) {
-      messagingRate = parseFloat(messagingFlatRate);
-      if (!Number.isFinite(messagingRate) || messagingRate <= 0) {
-        setError("Enter a valid flat rate for messaging (greater than 0).");
+    for (let i = 0; i < services.length; i++) {
+      const s = services[i];
+      const label = `Service ${i + 1}`;
+      if (!s.name.trim()) {
+        setError(`${label}: enter a service name.`);
         return;
       }
-    }
-
-    let audioRate: number | null = null;
-    if (offersAudio) {
-      audioRate = parseFloat(audioHourly);
-      if (!Number.isFinite(audioRate) || audioRate <= 0) {
-        setError("Enter a valid hourly rate for audio.");
+      if (!s.offers_messaging && !s.offers_audio && !s.offers_video) {
+        setError(`${label}: enable at least one consultation type.`);
         return;
       }
-    }
-
-    let vidRate: number | null = null;
-    if (offersVideo) {
-      vidRate = parseFloat(videoHourly);
-      if (!Number.isFinite(vidRate) || vidRate <= 0) {
-        setError("Enter a valid hourly rate for video.");
+      if (s.offers_messaging) {
+        const v = parseFloat(s.messaging_flat_rate);
+        if (!Number.isFinite(v) || v <= 0) {
+          setError(`${label}: enter a valid messaging flat rate (GBP).`);
+          return;
+        }
+      }
+      if (s.offers_audio) {
+        const v = parseFloat(s.audio_hourly_rate);
+        if (!Number.isFinite(v) || v <= 0) {
+          setError(`${label}: enter a valid audio hourly rate (GBP).`);
+          return;
+        }
+      }
+      if (s.offers_video) {
+        const v = parseFloat(s.video_hourly_rate);
+        if (!Number.isFinite(v) || v <= 0) {
+          setError(`${label}: enter a valid video hourly rate (GBP).`);
+          return;
+        }
+      }
+      if (s.min_session_minutes > s.max_session_minutes) {
+        setError(`${label}: minimum session length cannot exceed maximum.`);
         return;
       }
-    }
-
-    if (minSession > maxSession) {
-      setError("Minimum session length cannot be greater than maximum.");
-      return;
     }
 
     setSubmitting(true);
@@ -213,29 +248,104 @@ export default function ExpertSetupPage() {
       return;
     }
 
-    const payload = {
-      user_id: user.id,
+    const { data: existingEp } = await supabase
+      .from("expert_profiles")
+      .select("user_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const profilePayload = {
       bio: bio.trim(),
       keywords: tags,
       timezone,
-      min_session_minutes: minSession,
-      max_session_minutes: maxSession,
-      offers_messaging: offersMessaging,
-      messaging_flat_rate: offersMessaging ? messagingRate : null,
-      offers_audio: offersAudio,
-      offers_video: offersVideo,
-      audio_hourly_rate: offersAudio ? audioRate : null,
-      video_hourly_rate: offersVideo ? vidRate : null,
     };
 
-    const { error: saveError } = await supabase
-      .from("expert_profiles")
-      .upsert(payload, { onConflict: "user_id" });
+    if (existingEp) {
+      const { error: upErr } = await supabase
+        .from("expert_profiles")
+        .update(profilePayload)
+        .eq("user_id", user.id);
+      if (upErr) {
+        setError(upErr.message);
+        setSubmitting(false);
+        return;
+      }
+    } else {
+      const { error: insErr } = await supabase.from("expert_profiles").insert({
+        user_id: user.id,
+        ...profilePayload,
+      });
+      if (insErr) {
+        setError(insErr.message);
+        setSubmitting(false);
+        return;
+      }
+    }
 
-    if (saveError) {
-      setError(saveError.message);
-      setSubmitting(false);
-      return;
+    const keptIds = services.map((s) => s.id).filter(Boolean) as string[];
+    const { data: existingSvc } = await supabase
+      .from("services")
+      .select("id")
+      .eq("expert_user_id", user.id);
+
+    const toDelete =
+      (existingSvc ?? [])
+        .map((r) => r.id)
+        .filter((id) => !keptIds.includes(id)) ?? [];
+
+    if (toDelete.length > 0) {
+      const { error: delErr } = await supabase
+        .from("services")
+        .delete()
+        .in("id", toDelete);
+      if (delErr) {
+        setError(delErr.message);
+        setSubmitting(false);
+        return;
+      }
+    }
+
+    for (const s of services) {
+      const row = {
+        expert_user_id: user.id,
+        name: s.name.trim(),
+        description: s.description.trim() || null,
+        min_session_minutes: s.min_session_minutes,
+        max_session_minutes: s.max_session_minutes,
+        offers_messaging: s.offers_messaging,
+        messaging_flat_rate: s.offers_messaging
+          ? parseFloat(s.messaging_flat_rate)
+          : null,
+        offers_audio: s.offers_audio,
+        audio_hourly_rate: s.offers_audio
+          ? parseFloat(s.audio_hourly_rate)
+          : null,
+        offers_video: s.offers_video,
+        video_hourly_rate: s.offers_video
+          ? parseFloat(s.video_hourly_rate)
+          : null,
+        is_active: true,
+      };
+
+      if (s.id) {
+        const { error: u } = await supabase
+          .from("services")
+          .update(row)
+          .eq("id", s.id)
+          .eq("expert_user_id", user.id);
+        if (u) {
+          setError(u.message);
+          setSubmitting(false);
+          return;
+        }
+      } else {
+        const { error: ins } = await supabase.from("services").insert(row);
+        if (ins) {
+          setError(ins.message);
+          setSubmitting(false);
+          return;
+        }
+      }
     }
 
     router.replace("/expert/dashboard");
@@ -337,227 +447,66 @@ export default function ExpertSetupPage() {
             </div>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label
-                htmlFor="timezone"
-                className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-              >
-                Timezone
-              </label>
-              <select
-                id="timezone"
-                name="timezone"
-                value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-                className={sessionSelectClass}
-              >
-                {timezones.map((tz) => (
-                  <option key={tz} value={tz}>
-                    {tz}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label
-                htmlFor="minSession"
-                className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-              >
-                Minimum session length
-              </label>
-              <select
-                id="minSession"
-                value={minSession}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setMinSession(v);
-                  if (v > maxSession) setMaxSession(v);
-                }}
-                className={sessionSelectClass}
-              >
-                {minOptions.map((m) => (
-                  <option key={m} value={m}>
-                    {formatMinutesLabel(m)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label
-                htmlFor="maxSession"
-                className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-              >
-                Maximum session length
-              </label>
-              <select
-                id="maxSession"
-                value={maxSession}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setMaxSession(v);
-                  if (v < minSession) setMinSession(v);
-                }}
-                className={sessionSelectClass}
-              >
-                {maxOptions.map((m) => (
-                  <option key={m} value={m}>
-                    {formatMinutesLabel(m)}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div>
+            <label
+              htmlFor="timezone"
+              className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+            >
+              Timezone
+            </label>
+            <select
+              id="timezone"
+              name="timezone"
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+              className={sessionSelectClass}
+            >
+              {timezones.map((tz) => (
+                <option key={tz} value={tz}>
+                  {tz}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <fieldset>
-            <legend className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Consultation types offered
-            </legend>
-            <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-              Enable one or more. Set pricing for each type you offer.
+          <div className="border-t border-zinc-200 pt-8 dark:border-zinc-700">
+            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
+              Your services
+            </h2>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              Add one or more offerings — each can have its own session length
+              and pricing.
             </p>
-            <div className="mt-4 space-y-4">
-              <div
-                className={`rounded-xl border px-4 py-4 transition ${
-                  offersMessaging
-                    ? "border-zinc-900 bg-zinc-50 dark:border-zinc-100 dark:bg-zinc-800/80"
-                    : "border-zinc-200 bg-white dark:border-zinc-600 dark:bg-zinc-900/50"
-                }`}
-              >
-                <label className="flex cursor-pointer items-start gap-3">
-                  <input
-                    type="checkbox"
-                    checked={offersMessaging}
-                    onChange={(e) => setOffersMessaging(e.target.checked)}
-                    className="mt-1 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 dark:border-zinc-600 dark:bg-zinc-800"
-                  />
-                  <span className="flex-1">
-                    <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                      Messaging
-                    </span>
-                    <span className="mt-0.5 block text-xs text-zinc-500 dark:text-zinc-400">
-                      Live in-app messaging — flat fee per session
-                    </span>
-                    {offersMessaging ? (
-                      <div className="mt-3">
-                        <label
-                          htmlFor="messagingFlat"
-                          className="text-xs font-medium text-zinc-600 dark:text-zinc-400"
-                        >
-                          Flat rate (GBP)
-                        </label>
-                        <input
-                          id="messagingFlat"
-                          type="number"
-                          inputMode="decimal"
-                          min={0}
-                          step="0.01"
-                          value={messagingFlatRate}
-                          onChange={(e) => setMessagingFlatRate(e.target.value)}
-                          placeholder="£49.00"
-                          className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800"
-                        />
-                      </div>
-                    ) : null}
-                  </span>
-                </label>
-              </div>
 
-              <div
-                className={`rounded-xl border px-4 py-4 transition ${
-                  offersAudio
-                    ? "border-zinc-900 bg-zinc-50 dark:border-zinc-100 dark:bg-zinc-800/80"
-                    : "border-zinc-200 bg-white dark:border-zinc-600 dark:bg-zinc-900/50"
-                }`}
-              >
-                <label className="flex cursor-pointer items-start gap-3">
-                  <input
-                    type="checkbox"
-                    checked={offersAudio}
-                    onChange={(e) => setOffersAudio(e.target.checked)}
-                    className="mt-1 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 dark:border-zinc-600 dark:bg-zinc-800"
-                  />
-                  <span className="flex-1">
-                    <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                      Audio
-                    </span>
-                    <span className="mt-0.5 block text-xs text-zinc-500 dark:text-zinc-400">
-                      Voice sessions — priced per hour
-                    </span>
-                    {offersAudio ? (
-                      <div className="mt-3">
-                        <label
-                          htmlFor="audioHourly"
-                          className="text-xs font-medium text-zinc-600 dark:text-zinc-400"
-                        >
-                          Hourly rate (GBP)
-                        </label>
-                        <input
-                          id="audioHourly"
-                          type="number"
-                          inputMode="decimal"
-                          min={0}
-                          step="0.01"
-                          value={audioHourly}
-                          onChange={(e) => setAudioHourly(e.target.value)}
-                          placeholder="£120.00"
-                          className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800"
-                        />
-                      </div>
-                    ) : null}
-                  </span>
-                </label>
-              </div>
-
-              <div
-                className={`rounded-xl border px-4 py-4 transition ${
-                  offersVideo
-                    ? "border-zinc-900 bg-zinc-50 dark:border-zinc-100 dark:bg-zinc-800/80"
-                    : "border-zinc-200 bg-white dark:border-zinc-600 dark:bg-zinc-900/50"
-                }`}
-              >
-                <label className="flex cursor-pointer items-start gap-3">
-                  <input
-                    type="checkbox"
-                    checked={offersVideo}
-                    onChange={(e) => setOffersVideo(e.target.checked)}
-                    className="mt-1 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 dark:border-zinc-600 dark:bg-zinc-800"
-                  />
-                  <span className="flex-1">
-                    <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                      Video
-                    </span>
-                    <span className="mt-0.5 block text-xs text-zinc-500 dark:text-zinc-400">
-                      Video calls — priced per hour
-                    </span>
-                    {offersVideo ? (
-                      <div className="mt-3">
-                        <label
-                          htmlFor="videoHourly"
-                          className="text-xs font-medium text-zinc-600 dark:text-zinc-400"
-                        >
-                          Hourly rate (GBP)
-                        </label>
-                        <input
-                          id="videoHourly"
-                          type="number"
-                          inputMode="decimal"
-                          min={0}
-                          step="0.01"
-                          value={videoHourly}
-                          onChange={(e) => setVideoHourly(e.target.value)}
-                          placeholder="£150.00"
-                          className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800"
-                        />
-                      </div>
-                    ) : null}
-                  </span>
-                </label>
-              </div>
+            <div className="mt-6 space-y-8">
+              {services.map((s, idx) => (
+                <ServiceFields
+                  key={s.clientKey}
+                  index={idx}
+                  s={s}
+                  sessionSelectClass={sessionSelectClass}
+                  minOptions={SESSION_OPTIONS.filter(
+                    (m) => m <= s.max_session_minutes,
+                  )}
+                  maxOptions={SESSION_OPTIONS.filter(
+                    (m) => m >= s.min_session_minutes,
+                  )}
+                  formatMinutesLabel={formatMinutesLabel}
+                  onChange={(patch) => updateService(s.clientKey, patch)}
+                  onRemove={() => removeService(s.clientKey)}
+                  canRemove={services.length > 1}
+                />
+              ))}
             </div>
-          </fieldset>
+
+            <button
+              type="button"
+              onClick={addService}
+              className="mt-6 w-full rounded-xl border border-dashed border-zinc-300 bg-zinc-50/80 py-3 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800/50 dark:text-zinc-300 dark:hover:border-zinc-500"
+            >
+              Add another service
+            </button>
+          </div>
 
           {error ? (
             <p
@@ -577,6 +526,237 @@ export default function ExpertSetupPage() {
           </button>
         </form>
       </div>
+    </div>
+  );
+}
+
+function ServiceFields({
+  index,
+  s,
+  sessionSelectClass,
+  minOptions,
+  maxOptions,
+  formatMinutesLabel,
+  onChange,
+  onRemove,
+  canRemove,
+}: {
+  index: number;
+  s: ServiceForm;
+  sessionSelectClass: string;
+  minOptions: number[];
+  maxOptions: number[];
+  formatMinutesLabel: (m: number) => string;
+  onChange: (patch: Partial<ServiceForm>) => void;
+  onRemove: () => void;
+  canRemove: boolean;
+}) {
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-zinc-50/80 p-5 dark:border-zinc-600 dark:bg-zinc-800/40">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+          Service {index + 1}
+        </h3>
+        {canRemove ? (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="text-xs font-medium text-red-600 hover:underline dark:text-red-400"
+          >
+            Remove
+          </button>
+        ) : null}
+      </div>
+
+      <div className="mt-4">
+        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          Service name
+        </label>
+        <input
+          type="text"
+          value={s.name}
+          onChange={(e) => onChange({ name: e.target.value })}
+          placeholder="e.g. BJJ Coaching"
+          className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm dark:border-zinc-600 dark:bg-zinc-900"
+        />
+      </div>
+
+      <div className="mt-4">
+        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          Description
+        </label>
+        <textarea
+          rows={3}
+          value={s.description}
+          onChange={(e) => onChange({ description: e.target.value })}
+          placeholder="What this service includes…"
+          className="mt-1.5 w-full resize-y rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm dark:border-zinc-600 dark:bg-zinc-900"
+        />
+      </div>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Min session length
+          </label>
+          <select
+            value={s.min_session_minutes}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              if (v > s.max_session_minutes) {
+                onChange({ min_session_minutes: v, max_session_minutes: v });
+              } else {
+                onChange({ min_session_minutes: v });
+              }
+            }}
+            className={sessionSelectClass}
+          >
+            {minOptions.map((m) => (
+              <option key={m} value={m}>
+                {formatMinutesLabel(m)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Max session length
+          </label>
+          <select
+            value={s.max_session_minutes}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              if (v < s.min_session_minutes) {
+                onChange({ max_session_minutes: v, min_session_minutes: v });
+              } else {
+                onChange({ max_session_minutes: v });
+              }
+            }}
+            className={sessionSelectClass}
+          >
+            {maxOptions.map((m) => (
+              <option key={m} value={m}>
+                {formatMinutesLabel(m)}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <fieldset className="mt-6">
+        <legend className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          Consultation types & pricing (GBP £)
+        </legend>
+        <div className="mt-3 space-y-3">
+          <div
+            className={`rounded-xl border px-4 py-3 ${
+              s.offers_messaging
+                ? "border-zinc-900 bg-white dark:border-zinc-100 dark:bg-zinc-900"
+                : "border-zinc-200 bg-white/60 dark:border-zinc-600"
+            }`}
+          >
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={s.offers_messaging}
+                onChange={(e) => onChange({ offers_messaging: e.target.checked })}
+                className="mt-1 h-4 w-4 rounded border-zinc-300"
+              />
+              <span className="flex-1">
+                <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                  Messaging
+                </span>
+                {s.offers_messaging ? (
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.01"
+                    value={s.messaging_flat_rate}
+                    onChange={(e) =>
+                      onChange({ messaging_flat_rate: e.target.value })
+                    }
+                    placeholder="Flat rate"
+                    className="mt-2 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800"
+                  />
+                ) : null}
+              </span>
+            </label>
+          </div>
+
+          <div
+            className={`rounded-xl border px-4 py-3 ${
+              s.offers_audio
+                ? "border-zinc-900 bg-white dark:border-zinc-100 dark:bg-zinc-900"
+                : "border-zinc-200 bg-white/60 dark:border-zinc-600"
+            }`}
+          >
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={s.offers_audio}
+                onChange={(e) => onChange({ offers_audio: e.target.checked })}
+                className="mt-1 h-4 w-4 rounded border-zinc-300"
+              />
+              <span className="flex-1">
+                <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                  Audio (hourly)
+                </span>
+                {s.offers_audio ? (
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.01"
+                    value={s.audio_hourly_rate}
+                    onChange={(e) =>
+                      onChange({ audio_hourly_rate: e.target.value })
+                    }
+                    placeholder="£ / hour"
+                    className="mt-2 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800"
+                  />
+                ) : null}
+              </span>
+            </label>
+          </div>
+
+          <div
+            className={`rounded-xl border px-4 py-3 ${
+              s.offers_video
+                ? "border-zinc-900 bg-white dark:border-zinc-100 dark:bg-zinc-900"
+                : "border-zinc-200 bg-white/60 dark:border-zinc-600"
+            }`}
+          >
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={s.offers_video}
+                onChange={(e) => onChange({ offers_video: e.target.checked })}
+                className="mt-1 h-4 w-4 rounded border-zinc-300"
+              />
+              <span className="flex-1">
+                <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                  Video (hourly)
+                </span>
+                {s.offers_video ? (
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.01"
+                    value={s.video_hourly_rate}
+                    onChange={(e) =>
+                      onChange({ video_hourly_rate: e.target.value })
+                    }
+                    placeholder="£ / hour"
+                    className="mt-2 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800"
+                  />
+                ) : null}
+              </span>
+            </label>
+          </div>
+        </div>
+      </fieldset>
     </div>
   );
 }

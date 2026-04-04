@@ -1,64 +1,135 @@
-import Image from "next/image";
+import Link from "next/link";
+import Navbar from "@/components/Navbar";
+import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
 
-export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+export const metadata: Metadata = {
+  title: "FRAME — Book experts for live sessions",
+  description:
+    "Book live video, audio, or messaging sessions with experts. Brazilian jiu-jitsu, grappling, physiotherapy, strength & conditioning, and more.",
+};
+
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const heroSearch = (
+    <form action="/search" method="get" className="mt-8 w-full max-w-xl">
+      <label htmlFor="landing-search" className="sr-only">
+        Search experts
+      </label>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
+        <input
+          id="landing-search"
+          name="q"
+          type="search"
+          placeholder="Try BJJ, physio, S&C…"
+          className="min-h-[52px] w-full flex-1 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-base text-zinc-900 shadow-sm outline-none placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-500 dark:focus:ring-zinc-100/20"
+          autoComplete="off"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+        <button
+          type="submit"
+          className="shrink-0 rounded-xl bg-zinc-900 px-8 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        >
+          Search
+        </button>
+      </div>
+    </form>
+  );
+
+  return (
+    <div className="flex min-h-full flex-1 flex-col bg-gradient-to-b from-zinc-100 via-white to-zinc-100/90 dark:from-zinc-950 dark:via-zinc-950 dark:to-zinc-900/90">
+      {user ? (
+        <Navbar />
+      ) : (
+        <header className="border-b border-zinc-200/80 bg-white/90 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
+          <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-zinc-900 dark:text-zinc-50"
+            >
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border-2 border-zinc-900 bg-zinc-900 font-mono text-[10px] font-bold tracking-[0.15em] text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900">
+                FR
+              </span>
+              <span className="font-mono text-lg font-bold tracking-[0.35em] sm:text-xl">
+                FRAME
+              </span>
+            </Link>
+            <Link
+              href="/login"
+              className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:border-zinc-300 hover:shadow dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-500"
+            >
+              Sign in
+            </Link>
+          </div>
+        </header>
+      )}
+
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 pb-16 pt-10 sm:px-6 sm:pt-14">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+            Live expertise, on your terms
+          </p>
+          <h1 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50">
+            Book video, audio, or messaging sessions with experts
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="mt-4 text-pretty text-lg leading-relaxed text-zinc-600 dark:text-zinc-400">
+            FRAME connects you with coaches and clinicians for one-to-one
+            sessions — pick the format that fits, book a slot, and get guidance
+            when you need it.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="mx-auto mt-2 flex w-full max-w-xl flex-col items-center">
+          {heroSearch}
+          {!user ? (
+            <p className="mt-3 text-center text-sm text-zinc-500 dark:text-zinc-400">
+              Already have an account?{" "}
+              <Link
+                href="/login"
+                className="font-semibold text-zinc-800 underline-offset-4 hover:underline dark:text-zinc-200"
+              >
+                Sign in
+              </Link>
+            </p>
+          ) : null}
         </div>
+
+        <section className="mx-auto mt-16 max-w-3xl rounded-2xl border border-zinc-200/80 bg-white/80 p-6 shadow-sm backdrop-blur dark:border-zinc-700/80 dark:bg-zinc-900/60 sm:p-8">
+          <h2 className="text-center text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+            Launch focus
+          </h2>
+          <p className="mt-3 text-center text-zinc-700 dark:text-zinc-300">
+            We&apos;re opening with experts in{" "}
+            <span className="font-medium text-zinc-900 dark:text-zinc-100">
+              Brazilian jiu-jitsu
+            </span>
+            ,{" "}
+            <span className="font-medium text-zinc-900 dark:text-zinc-100">
+              grappling
+            </span>
+            ,{" "}
+            <span className="font-medium text-zinc-900 dark:text-zinc-100">
+              physiotherapy
+            </span>
+            , and{" "}
+            <span className="font-medium text-zinc-900 dark:text-zinc-100">
+              strength &amp; conditioning
+            </span>
+            — with more specialities on the way.
+          </p>
+        </section>
+
+        <section className="mx-auto mt-10 max-w-2xl text-center">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Experts set their own rates and availability. Browse by keyword,
+            compare formats, and book in a few clicks.
+          </p>
+        </section>
       </main>
     </div>
   );

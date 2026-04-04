@@ -4,12 +4,9 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-type RoleChoice = "consumer" | "expert";
-
 export default function OnboardingPage() {
   const router = useRouter();
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<RoleChoice>("consumer");
   const [ready, setReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,13 +22,11 @@ export default function OnboardingPage() {
     }
     const { data: existing } = await supabase
       .from("profiles")
-      .select("id, role")
+      .select("id")
       .eq("user_id", user.id)
       .maybeSingle();
     if (existing) {
-      router.replace(
-        existing.role === "expert" ? "/expert/setup" : "/dashboard",
-      );
+      router.replace("/dashboard");
       return;
     }
     const metaName =
@@ -68,14 +63,14 @@ export default function OnboardingPage() {
     const { error: insertError } = await supabase.from("profiles").insert({
       user_id: user.id,
       full_name: trimmed,
-      role,
+      role: "consumer",
     });
     if (insertError) {
       setError(insertError.message);
       setSubmitting(false);
       return;
     }
-    router.replace(role === "expert" ? "/expert/setup" : "/dashboard");
+    router.replace("/dashboard");
   }
 
   if (!ready) {
@@ -109,7 +104,7 @@ export default function OnboardingPage() {
               FRAME
             </h1>
             <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
-              Welcome — tell us how you&apos;ll use the marketplace
+              Welcome — tell us your name to get started
             </p>
           </div>
 
@@ -132,54 +127,6 @@ export default function OnboardingPage() {
                 placeholder="Alex Morgan"
               />
             </div>
-
-            <fieldset>
-              <legend className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                I&apos;m joining as
-              </legend>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => setRole("consumer")}
-                  className={`rounded-xl border px-4 py-4 text-left text-sm transition ${
-                    role === "consumer"
-                      ? "border-zinc-900 bg-zinc-900 text-white shadow-md dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                      : "border-zinc-200 bg-white hover:border-zinc-300 dark:border-zinc-600 dark:bg-zinc-800 dark:hover:border-zinc-500"
-                  }`}
-                >
-                  <span className="block font-semibold">Consumer</span>
-                  <span
-                    className={`mt-1 block text-xs ${
-                      role === "consumer"
-                        ? "text-zinc-300 dark:text-zinc-600"
-                        : "text-zinc-500 dark:text-zinc-400"
-                    }`}
-                  >
-                    Book sessions with experts
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole("expert")}
-                  className={`rounded-xl border px-4 py-4 text-left text-sm transition ${
-                    role === "expert"
-                      ? "border-zinc-900 bg-zinc-900 text-white shadow-md dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                      : "border-zinc-200 bg-white hover:border-zinc-300 dark:border-zinc-600 dark:bg-zinc-800 dark:hover:border-zinc-500"
-                  }`}
-                >
-                  <span className="block font-semibold">Expert</span>
-                  <span
-                    className={`mt-1 block text-xs ${
-                      role === "expert"
-                        ? "text-zinc-300 dark:text-zinc-600"
-                        : "text-zinc-500 dark:text-zinc-400"
-                    }`}
-                  >
-                    Offer sessions to clients
-                  </span>
-                </button>
-              </div>
-            </fieldset>
 
             {error ? (
               <p

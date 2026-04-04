@@ -1,0 +1,30 @@
+-- Experts are identified by expert_profiles, not profiles.role
+
+create or replace function public.search_expert_user_ids(p_search text)
+returns table (user_id uuid)
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select ep.user_id
+  from public.expert_profiles ep
+  inner join public.profiles pr on pr.user_id = ep.user_id
+  where
+    p_search is null
+    or trim(p_search) = ''
+    or exists (
+      select 1
+      from unnest(
+        regexp_split_to_array(trim(p_search), '[[:space:]]+')
+      ) as tok
+      where tok <> ''
+        and exists (
+          select 1
+          from unnest(ep.keywords) kw
+          where kw ilike '%' || tok || '%'
+        )
+    );
+$$;
+
+grant execute on function public.search_expert_user_ids(text) to anon, authenticated;

@@ -55,11 +55,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user && isLogin) {
-    const dest = !profile
-      ? "/onboarding"
-      : profile.role === "expert"
-        ? "/expert/setup"
-        : "/dashboard";
+    const dest = !profile ? "/onboarding" : "/dashboard";
     return NextResponse.redirect(new URL(dest, request.url));
   }
 
@@ -70,23 +66,17 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user && profile && isOnboarding) {
-    const dest =
-      profile.role === "expert" ? "/expert/setup" : "/dashboard";
-    return NextResponse.redirect(new URL(dest, request.url));
-  }
-
-  if (user && profile && isExpertAppRoute(path) && profile.role !== "expert") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  if (user && profile?.role === "expert") {
+  if (user && profile && path === "/expert/dashboard") {
     const { data: expertRow } = await supabase
       .from("expert_profiles")
       .select("id")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (path === "/expert/dashboard" && !expertRow) {
+    if (!expertRow) {
       return NextResponse.redirect(new URL("/expert/setup", request.url));
     }
   }

@@ -69,7 +69,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  if (user && profile && path === "/expert/dashboard") {
+  if (
+    user &&
+    profile &&
+    (path === "/expert/dashboard" || path === "/expert/availability")
+  ) {
     const { data: expertRow } = await supabase
       .from("expert_profiles")
       .select("id")

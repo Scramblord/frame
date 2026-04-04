@@ -33,7 +33,7 @@ export default async function DashboardPage() {
   const { data: upcomingRows } = await supabase
     .from("bookings")
     .select("id, scheduled_at, duration_minutes, status")
-    .eq("consumer_id", user.id)
+    .eq("consumer_user_id", user.id)
     .gte("scheduled_at", nowIso)
     .in("status", ["pending", "confirmed"])
     .order("scheduled_at", { ascending: true })

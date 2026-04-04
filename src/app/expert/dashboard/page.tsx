@@ -47,10 +47,24 @@ export default async function ExpertDashboardPage() {
 
   const services = serviceRows ?? [];
 
+  const { data: availabilityRows } = await supabase
+    .from("availability")
+    .select("day_of_week, start_time, end_time, is_active")
+    .eq("expert_user_id", user.id)
+    .eq("is_active", true)
+    .order("day_of_week", { ascending: true });
+
+  const availability = availabilityRows ?? [];
+
+  const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  function formatAvailTime(t: string) {
+    return t.length >= 5 ? t.slice(0, 5) : t;
+  }
+
   const { count: sessionsCompleted } = await supabase
     .from("bookings")
     .select("*", { count: "exact", head: true })
-    .eq("expert_id", user.id)
+    .eq("expert_user_id", user.id)
     .eq("status", "completed");
 
   const { data: statsRows, error: statsError } = await supabase.rpc(
@@ -89,7 +103,7 @@ export default async function ExpertDashboardPage() {
   const { data: upcomingRows } = await supabase
     .from("bookings")
     .select("id, scheduled_at, duration_minutes, status")
-    .eq("expert_id", user.id)
+    .eq("expert_user_id", user.id)
     .gte("scheduled_at", nowIso)
     .in("status", ["pending", "confirmed"])
     .order("scheduled_at", { ascending: true })
@@ -222,6 +236,51 @@ export default async function ExpertDashboardPage() {
               </p>
             ) : null}
           </div>
+        </section>
+
+        <section className="mt-8 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                Availability
+              </h2>
+              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                Your timezone:{" "}
+                <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                  {expert?.timezone?.trim() || "UTC"}
+                </span>
+              </p>
+            </div>
+            <Link
+              href="/expert/availability"
+              className="shrink-0 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm transition hover:border-zinc-300 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-500"
+            >
+              Edit availability
+            </Link>
+          </div>
+          {availability.length === 0 ? (
+            <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
+              No weekly hours set yet. Add your schedule so clients know when you
+              can take bookings.
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+              {availability.map((a) => (
+                <li
+                  key={a.day_of_week}
+                  className="flex flex-wrap justify-between gap-2 rounded-lg border border-zinc-100 bg-zinc-50/80 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-800/40"
+                >
+                  <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                    {DAY_NAMES[a.day_of_week] ?? "Day"}
+                  </span>
+                  <span className="tabular-nums text-zinc-600 dark:text-zinc-400">
+                    {formatAvailTime(String(a.start_time))} –{" "}
+                    {formatAvailTime(String(a.end_time))}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         <section className="mt-8 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">

@@ -1,51 +1,95 @@
-import Link from "next/link";
+import { BookWizard } from "./book-wizard";
+import type { BookableSessionType } from "@/lib/booking-pricing";
+import { createClient } from "@/lib/supabase/server";
+import type { ServiceRow } from "@/lib/experts-marketplace";
+import { notFound, redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ expertProfileId: string; serviceId: string }>;
   searchParams: Promise<{ type?: string }>;
 };
 
-/** Placeholder for the booking flow — links from public expert services land here. */
-export default async function BookServicePage({
-  params,
-  searchParams,
-}: PageProps) {
+function parseInitialSessionType(
+  raw: string | undefined,
+): BookableSessionType | null {
+  if (
+    raw === "messaging" ||
+    raw === "urgent_messaging" ||
+    raw === "audio" ||
+    raw === "video"
+  ) {
+    return raw;
+  }
+  return null;
+}
+
+export default async function BookServicePage({ params, searchParams }: PageProps) {
   const { expertProfileId, serviceId } = await params;
-  const { type } = await searchParams;
-  const consult =
-    type === "messaging" || type === "audio" || type === "video"
-      ? type
-      : null;
+  const { type: typeParam } = await searchParams;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect(
+      `/login?next=${encodeURIComponent(`/book/${expertProfileId}/${serviceId}`)}`,
+    );
+  }
+
+  const { data: expertConsumerProfile, error: pErr } = await supabase
+    .from("profiles")
+    .select("user_id, full_name")
+    .eq("id", expertProfileId)
+    .maybeSingle();
+
+  if (pErr || !expertConsumerProfile) {
+    notFound();
+  }
+
+  const expertUserId = expertConsumerProfile.user_id;
+
+  if (expertUserId === user.id) {
+    redirect("/expert/dashboard");
+  }
+
+  const { data: service, error: sErr } = await supabase
+    .from("services")
+    .select("*")
+    .eq("id", serviceId)
+    .eq("expert_user_id", expertUserId)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (sErr || !service) {
+    notFound();
+  }
+
+  const { data: expertRow } = await supabase
+    .from("expert_profiles")
+    .select("timezone")
+    .eq("user_id", expertUserId)
+    .maybeSingle();
+
+  const expertTimezone =
+    (expertRow?.timezone as string | null)?.trim() || "Europe/London";
+
+  const initialSessionType = parseInitialSessionType(typeParam);
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-zinc-100 px-4 py-16 dark:bg-zinc-950">
-      <div className="mx-auto w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-8 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
-        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-          Book a session
-        </h1>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-          Booking for profile{" "}
-          <code className="rounded bg-zinc-100 px-1 text-xs dark:bg-zinc-800">
-            {expertProfileId}
-          </code>
-          , service{" "}
-          <code className="rounded bg-zinc-100 px-1 text-xs dark:bg-zinc-800">
-            {serviceId}
-          </code>
-          {consult ? (
-            <>
-              , type <span className="font-medium">{consult}</span>
-            </>
-          ) : null}
-          . Full scheduling and payment will be wired here.
-        </p>
-        <Link
-          href={`/experts/${expertProfileId}`}
-          className="mt-6 inline-block text-sm font-semibold text-zinc-900 underline-offset-4 hover:underline dark:text-zinc-100"
-        >
-          ← Back to expert
-        </Link>
-      </div>
-    </div>
+    <BookWizard
+      expertProfileId={expertProfileId}
+      expertName={expertConsumerProfile.full_name?.trim() || "Expert"}
+      expertUserId={expertUserId}
+      expertTimezone={expertTimezone}
+      service={service as ServiceRow & {
+        urgent_messaging_enabled?: boolean;
+        urgent_messaging_rate?: number | string | null;
+      }}
+      initialSessionType={initialSessionType}
+    />
   );
 }

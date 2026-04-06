@@ -1,3 +1,6 @@
+import { ActiveSessionBanner } from "@/components/ActiveSessionBanner";
+import { ConsumerBookingCard } from "@/components/ConsumerBookingCard";
+import { enrichBookingsForConsumerCards } from "@/lib/consumer-bookings";
 import Navbar from "@/components/Navbar";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
@@ -29,30 +32,54 @@ export default async function DashboardPage() {
 
   const displayName = profile?.full_name?.trim() || "there";
 
-  const nowIso = new Date().toISOString();
-  const { data: upcomingRows } = await supabase
+  const nowMs = Date.now();
+  const { data: upcomingRaw } = await supabase
     .from("bookings")
-    .select("id, scheduled_at, duration_minutes, status")
+    .select(
+      "id, scheduled_at, duration_minutes, status, session_type, service_id, expert_user_id",
+    )
     .eq("consumer_user_id", user.id)
-    .gte("scheduled_at", nowIso)
-    .in("status", ["pending", "confirmed"])
+    .not("scheduled_at", "is", null)
+    .in("status", ["pending_payment", "confirmed", "in_progress"])
     .order("scheduled_at", { ascending: true })
-    .limit(20);
+    .limit(50);
 
-  const upcoming = upcomingRows ?? [];
+  const upcomingRows =
+    upcomingRaw?.filter((b) => {
+      if (b.duration_minutes == null || !b.scheduled_at) return false;
+      const endMs =
+        new Date(b.scheduled_at).getTime() + b.duration_minutes * 60 * 1000;
+      return endMs > nowMs;
+    }).slice(0, 3) ?? [];
+
+  const upcomingCards = await enrichBookingsForConsumerCards(
+    supabase,
+    upcomingRows,
+  );
 
   const featuredExperts = await fetchExpertsWithProfiles(supabase);
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-gradient-to-b from-zinc-100 to-zinc-200/90 dark:from-zinc-950 dark:to-zinc-900">
       <Navbar />
+      <ActiveSessionBanner />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
-        <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-          Hey {displayName} — discover experts and manage your bookings.
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Find your next session
-        </h1>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+              Hey {displayName} — discover experts and manage your bookings.
+            </p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+              Find your next session
+            </h1>
+          </div>
+          <Link
+            href="/bookings"
+            className="shrink-0 rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-500"
+          >
+            My bookings
+          </Link>
+        </div>
 
         <form
           action="/search"
@@ -169,32 +196,44 @@ export default async function DashboardPage() {
           <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             Upcoming bookings
           </h2>
-          {upcoming.length === 0 ? (
-            <p className="mt-4 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-400">
-              Nothing scheduled yet. Search above to book your first session.
-            </p>
-          ) : (
-            <ul className="mt-4 space-y-3">
-              {upcoming.map((b) => (
-                <li
-                  key={b.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-100 bg-zinc-50/80 px-4 py-3 text-sm dark:border-zinc-800 dark:bg-zinc-800/40"
+          {upcomingCards.length === 0 ? (
+            <div className="mt-4 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-8 text-center dark:border-zinc-700 dark:bg-zinc-800/40">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                No upcoming sessions. Find an expert to get started.
+              </p>
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                <Link
+                  href="/bookings"
+                  className="inline-flex rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm transition hover:border-zinc-300 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
                 >
-                  <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                    {new Date(b.scheduled_at).toLocaleString("en-GB", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                  <span className="text-zinc-600 dark:text-zinc-400">
-                    {b.duration_minutes} min · {b.status}
-                  </span>
-                </li>
-              ))}
-            </ul>
+                  My bookings
+                </Link>
+                <Link
+                  href="/search"
+                  className="inline-flex rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                >
+                  Search experts
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <>
+              <ul className="mt-4 space-y-3">
+                {upcomingCards.map((card) => (
+                  <li key={card.bookingId}>
+                    <ConsumerBookingCard {...card} />
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-5 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+                <Link
+                  href="/bookings"
+                  className="text-sm font-semibold text-zinc-700 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100"
+                >
+                  My bookings
+                </Link>
+              </div>
+            </>
           )}
         </section>
       </main>

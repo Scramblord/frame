@@ -21,6 +21,9 @@ export type ServiceRow = {
   audio_hourly_rate: number | string | null;
   offers_video: boolean;
   video_hourly_rate: number | string | null;
+  urgent_messaging_enabled?: boolean;
+  urgent_messaging_rate?: number | string | null;
+  messaging_response_hours?: number | null;
   is_active: boolean;
   created_at?: string;
 };

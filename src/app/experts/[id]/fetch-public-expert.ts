@@ -23,6 +23,8 @@ export type PublicExpertProfileRow = {
 export type ExpertDetailsRow = Record<string, unknown> & {
   bio?: string | null;
   keywords?: string[] | null;
+  expert_sessions_kept?: number | null;
+  expert_sessions_total?: number | null;
   timezone?: string | null;
   min_session_minutes?: number | null;
   max_session_minutes?: number | null;

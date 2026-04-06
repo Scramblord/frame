@@ -1,4 +1,9 @@
+import { ActiveSessionBanner } from "@/components/ActiveSessionBanner";
+import { ExpertBookingCard } from "@/components/ExpertBookingCard";
 import Navbar from "@/components/Navbar";
+import type { BookingListRow } from "@/lib/consumer-bookings";
+import { enrichBookingsForExpertCards } from "@/lib/expert-bookings";
+import { fetchExpertStripeEarnings } from "@/lib/expert-stripe-earnings";
 import { createClient } from "@/lib/supabase/server";
 import {
   formatGbp,
@@ -49,10 +54,11 @@ export default async function ExpertDashboardPage() {
 
   const { data: availabilityRows } = await supabase
     .from("availability")
-    .select("day_of_week, start_time, end_time, is_active")
+    .select("id, day_of_week, start_time, end_time, is_active")
     .eq("expert_user_id", user.id)
     .eq("is_active", true)
-    .order("day_of_week", { ascending: true });
+    .order("day_of_week", { ascending: true })
+    .order("start_time", { ascending: true });
 
   const availability = availabilityRows ?? [];
 
@@ -99,17 +105,30 @@ export default async function ExpertDashboardPage() {
         : null;
   }
 
-  const nowIso = new Date().toISOString();
-  const { data: upcomingRows } = await supabase
+  const nowMs = Date.now();
+  const { data: expertUpcomingRaw } = await supabase
     .from("bookings")
-    .select("id, scheduled_at, duration_minutes, status")
+    .select(
+      "id, scheduled_at, duration_minutes, status, session_type, service_id, expert_user_id, consumer_user_id",
+    )
     .eq("expert_user_id", user.id)
-    .gte("scheduled_at", nowIso)
-    .in("status", ["pending", "confirmed"])
+    .not("scheduled_at", "is", null)
+    .in("status", ["confirmed", "in_progress"])
     .order("scheduled_at", { ascending: true })
-    .limit(20);
+    .limit(50);
 
-  const upcoming = upcomingRows ?? [];
+  const expertUpcomingRows =
+    expertUpcomingRaw?.filter((b) => {
+      if (b.duration_minutes == null || !b.scheduled_at) return false;
+      const endMs =
+        new Date(b.scheduled_at).getTime() + b.duration_minutes * 60 * 1000;
+      return endMs > nowMs;
+    }).slice(0, 3) ?? [];
+
+  const expertUpcomingCards = await enrichBookingsForExpertCards(
+    supabase,
+    expertUpcomingRows as BookingListRow[],
+  );
 
   const keywords = expert?.keywords ?? [];
 
@@ -117,10 +136,42 @@ export default async function ExpertDashboardPage() {
     (s) => lowestPriceForService(s) != null,
   );
 
+  const stripeOnboardingComplete = expert?.stripe_onboarding_complete === true;
+  const stripeAccountId =
+    typeof expert?.stripe_account_id === "string"
+      ? expert.stripe_account_id.trim()
+      : "";
+  const canShowStripeEarnings =
+    stripeOnboardingComplete && Boolean(stripeAccountId);
+
+  const earningsResult = canShowStripeEarnings
+    ? await fetchExpertStripeEarnings(stripeAccountId)
+    : null;
+
   return (
     <div className="flex min-h-full flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
       <Navbar />
+      <ActiveSessionBanner />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
+        {!stripeOnboardingComplete ? (
+          <div className="mb-8 rounded-2xl border border-amber-300/80 bg-amber-50 px-4 py-4 shadow-sm dark:border-amber-700/80 dark:bg-amber-950/40 sm:px-5 sm:py-4">
+            <p className="text-sm font-medium text-amber-950 dark:text-amber-100">
+              You need to connect your bank account before you can accept
+              bookings and receive payouts.
+            </p>
+            <p className="mt-2 text-sm text-amber-900/90 dark:text-amber-200/90">
+              Complete Stripe Connect onboarding to receive earnings from
+              completed sessions.
+            </p>
+            <Link
+              href="/expert/connect"
+              className="mt-3 inline-flex rounded-xl bg-amber-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-800 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-100"
+            >
+              Connect bank account
+            </Link>
+          </div>
+        ) : null}
+
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
           Expert dashboard
         </h1>
@@ -267,7 +318,7 @@ export default async function ExpertDashboardPage() {
             <ul className="mt-4 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
               {availability.map((a) => (
                 <li
-                  key={a.day_of_week}
+                  key={a.id}
                   className="flex flex-wrap justify-between gap-2 rounded-lg border border-zinc-100 bg-zinc-50/80 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-800/40"
                 >
                   <span className="font-medium text-zinc-900 dark:text-zinc-100">
@@ -285,35 +336,153 @@ export default async function ExpertDashboardPage() {
 
         <section className="mt-8 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+            Earnings
+          </h2>
+          {!canShowStripeEarnings ? (
+            <div className="mt-4 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-6 dark:border-zinc-700 dark:bg-zinc-800/40">
+              <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                Connect your bank account to start receiving payments
+              </p>
+              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                Once Stripe Connect is complete, your balance and payouts from
+                completed sessions will appear here.
+              </p>
+              <Link
+                href="/expert/connect"
+                className="mt-4 inline-flex rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              >
+                Connect bank account
+              </Link>
+            </div>
+          ) : earningsResult && !earningsResult.ok ? (
+            <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
+              Earnings data unavailable
+            </p>
+          ) : earningsResult && earningsResult.ok ? (
+            <>
+              <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-xl border border-zinc-100 bg-zinc-50/80 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-800/40">
+                  <dt className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                    Available balance
+                  </dt>
+                  <dd className="mt-1 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+                    {formatGbp(earningsResult.data.availablePence / 100)}
+                  </dd>
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    Ready to pay out
+                  </p>
+                </div>
+                <div className="rounded-xl border border-zinc-100 bg-zinc-50/80 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-800/40">
+                  <dt className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                    Pending balance
+                  </dt>
+                  <dd className="mt-1 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+                    {formatGbp(earningsResult.data.pendingPence / 100)}
+                  </dd>
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    On the way, not yet available
+                  </p>
+                </div>
+                <div className="rounded-xl border border-zinc-100 bg-zinc-50/80 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-800/40">
+                  <dt className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                    This month
+                  </dt>
+                  <dd className="mt-1 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+                    {formatGbp(earningsResult.data.thisMonthPence / 100)}
+                  </dd>
+                </div>
+                <div className="rounded-xl border border-zinc-100 bg-zinc-50/80 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-800/40">
+                  <dt className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                    Last month
+                  </dt>
+                  <dd className="mt-1 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+                    {formatGbp(earningsResult.data.lastMonthPence / 100)}
+                  </dd>
+                </div>
+              </dl>
+              <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                Lifetime earnings:{" "}
+                <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                  {formatGbp(earningsResult.data.lifetimePence / 100)}
+                </span>
+              </p>
+              <div className="mt-6 border-t border-zinc-100 pt-5 dark:border-zinc-800">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                  Recent payouts
+                </h3>
+                {earningsResult.data.recentTransfers.length === 0 ? (
+                  <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+                    No payouts yet — earnings will appear here after completed
+                    sessions.
+                  </p>
+                ) : (
+                  <ul className="mt-3 space-y-2">
+                    {earningsResult.data.recentTransfers.map((t) => (
+                      <li
+                        key={t.id}
+                        className="flex items-center justify-between gap-3 rounded-lg border border-zinc-100 bg-zinc-50/80 px-3 py-2.5 text-sm dark:border-zinc-800 dark:bg-zinc-800/40"
+                      >
+                        <time
+                          dateTime={new Date(t.created * 1000).toISOString()}
+                          className="text-zinc-600 dark:text-zinc-400"
+                        >
+                          {new Date(t.created * 1000).toLocaleDateString(
+                            "en-GB",
+                            {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            },
+                          )}
+                        </time>
+                        <span className="font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+                          {formatGbp(t.amountPence / 100)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </>
+          ) : null}
+        </section>
+
+        <section className="mt-8 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             Upcoming bookings
           </h2>
-          {upcoming.length === 0 ? (
-            <p className="mt-4 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-400">
-              No upcoming sessions. When clients book you, they&apos;ll appear
-              here.
-            </p>
-          ) : (
-            <ul className="mt-4 space-y-3">
-              {upcoming.map((b) => (
-                <li
-                  key={b.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-100 bg-zinc-50/80 px-4 py-3 text-sm dark:border-zinc-800 dark:bg-zinc-800/40"
+          {expertUpcomingCards.length === 0 ? (
+            <>
+              <p className="mt-4 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-400">
+                No upcoming sessions yet.
+              </p>
+              <div className="mt-5 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+                <Link
+                  href="/expert/bookings"
+                  className="text-sm font-semibold text-zinc-700 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100"
                 >
-                  <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                    {new Date(b.scheduled_at).toLocaleString("en-GB", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                  <span className="text-zinc-600 dark:text-zinc-400">
-                    {b.duration_minutes} min · {b.status}
-                  </span>
-                </li>
-              ))}
-            </ul>
+                  View all bookings
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <ul className="mt-4 space-y-3">
+                {expertUpcomingCards.map((card) => (
+                  <li key={card.bookingId}>
+                    <ExpertBookingCard {...card} />
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-5 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+                <Link
+                  href="/expert/bookings"
+                  className="text-sm font-semibold text-zinc-700 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100"
+                >
+                  View all bookings
+                </Link>
+              </div>
+            </>
           )}
         </section>
 

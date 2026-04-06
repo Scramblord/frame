@@ -50,7 +50,15 @@ export async function proxy(request: NextRequest) {
     profile = data;
   }
 
-  if (!user && (path.startsWith("/dashboard") || isExpertAppRoute(path) || isOnboarding)) {
+  if (
+    !user &&
+    (path.startsWith("/dashboard") ||
+      path.startsWith("/book") ||
+      path.startsWith("/bookings") ||
+      path.startsWith("/session/") ||
+      isExpertAppRoute(path) ||
+      isOnboarding)
+  ) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -60,7 +68,13 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user && !profile && !isOnboarding && !isAuthRoute && !isLogin) {
-    if (path.startsWith("/dashboard") || isExpertAppRoute(path)) {
+    if (
+      path.startsWith("/dashboard") ||
+      path.startsWith("/book") ||
+      path.startsWith("/bookings") ||
+      path.startsWith("/session/") ||
+      isExpertAppRoute(path)
+    ) {
       return NextResponse.redirect(new URL("/onboarding", request.url));
     }
   }
@@ -72,7 +86,11 @@ export async function proxy(request: NextRequest) {
   if (
     user &&
     profile &&
-    (path === "/expert/dashboard" || path === "/expert/availability")
+    (path === "/expert/dashboard" ||
+      path === "/expert/availability" ||
+      path === "/expert/connect" ||
+      path === "/expert/bookings" ||
+      path.startsWith("/expert/bookings/"))
   ) {
     const { data: expertRow } = await supabase
       .from("expert_profiles")

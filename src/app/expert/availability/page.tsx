@@ -41,11 +41,18 @@ export default async function ExpertAvailabilityPage() {
     .eq("expert_user_id", user.id)
     .order("day_of_week", { ascending: true });
 
+  const { data: overrideRows } = await supabase
+    .from("availability_overrides")
+    .select("id, date, is_blocked, start_time, end_time")
+    .eq("expert_user_id", user.id)
+    .order("date", { ascending: true });
+
   return (
     <div className="flex min-h-full flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
       <Navbar />
       <AvailabilityClient
         initialRows={rows ?? []}
+        initialOverrides={overrideRows ?? []}
         timezone={expert.timezone?.trim() || "UTC"}
       />
     </div>

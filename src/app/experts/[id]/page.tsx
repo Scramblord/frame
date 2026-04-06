@@ -2,6 +2,12 @@ import {
   isPublicExpertUuid,
   loadPublicExpertPageData,
 } from "./fetch-public-expert";
+import { reliabilityPercent } from "@/lib/cancellation";
+import {
+  summarizeWeeklyAvailability,
+  type WeeklyAvailabilityRow,
+} from "@/lib/expert-weekly-availability";
+import Navbar from "@/components/Navbar";
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -134,6 +140,30 @@ export default async function ExpertPublicPage({ params }: PageProps) {
     (reviewerProfiles ?? []).map((p) => [p.user_id, p]),
   );
 
+  const { data: weeklyAvailabilityRows } = expert
+    ? await supabase
+        .from("availability")
+        .select("day_of_week, start_time, end_time")
+        .eq("expert_user_id", profile.user_id)
+        .eq("is_active", true)
+        .order("day_of_week", { ascending: true })
+        .order("start_time", { ascending: true })
+    : { data: [] };
+
+  const availabilitySummaryLines = summarizeWeeklyAvailability(
+    (weeklyAvailabilityRows ?? []) as WeeklyAvailabilityRow[],
+  );
+  const availabilityTzLabel =
+    expert?.timezone?.trim() || "Europe/London";
+
+  const reliabilityPct =
+    expert != null
+      ? reliabilityPercent(
+          expert.expert_sessions_kept ?? 0,
+          expert.expert_sessions_total ?? 0,
+        )
+      : null;
+
   const displayName = profile.full_name?.trim() || "Expert";
   const initials = displayName
     .split(/\s+/)
@@ -150,29 +180,9 @@ export default async function ExpertPublicPage({ params }: PageProps) {
 
   return (
     <div className="min-h-full flex-1 bg-gradient-to-b from-zinc-100 to-zinc-200/90 dark:from-zinc-950 dark:to-zinc-900">
-      <header className="border-b border-zinc-200/80 bg-white/90 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-5 sm:px-6">
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-zinc-900 dark:text-zinc-50"
-          >
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border-2 border-zinc-900 bg-zinc-900 font-mono text-[10px] font-bold tracking-[0.15em] text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900">
-              FR
-            </span>
-            <span className="font-mono text-lg font-bold tracking-[0.35em] sm:text-xl">
-              FRAME
-            </span>
-          </Link>
-          <Link
-            href="/login"
-            className="text-sm font-medium text-zinc-600 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
-          >
-            Sign in
-          </Link>
-        </div>
-      </header>
+      <Navbar />
 
-      <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
+      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
         <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-xl shadow-zinc-900/5 dark:border-zinc-700/80 dark:bg-zinc-900 dark:shadow-black/40">
           <div className="border-b border-zinc-100 bg-gradient-to-br from-zinc-50 to-white px-6 py-8 dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-950 sm:px-10 sm:py-10">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-10">
@@ -224,6 +234,11 @@ export default async function ExpertPublicPage({ params }: PageProps) {
                       No reviews yet
                     </span>
                   )}
+                  {reliabilityPct != null ? (
+                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      {reliabilityPct}% reliability
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -264,6 +279,30 @@ export default async function ExpertPublicPage({ params }: PageProps) {
                     </li>
                   ))}
                 </ul>
+              </section>
+            ) : null}
+
+            {expert ? (
+              <section>
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                  Availability
+                </h2>
+                {availabilitySummaryLines.length === 0 ? (
+                  <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+                    No availability set yet.
+                  </p>
+                ) : (
+                  <>
+                    <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+                      {availabilitySummaryLines.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                    <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                      Times shown in {availabilityTzLabel}.
+                    </p>
+                  </>
+                )}
               </section>
             ) : null}
 

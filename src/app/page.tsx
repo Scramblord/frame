@@ -52,9 +52,13 @@ export default async function Home() {
               href="/"
               className="flex items-center gap-2 text-zinc-900 dark:text-zinc-50"
             >
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border-2 border-zinc-900 bg-zinc-900 font-mono text-[10px] font-bold tracking-[0.15em] text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900">
-                FR
-              </span>
+              <img
+                src="/logo.png"
+                alt=""
+                className="h-8 w-auto shrink-0"
+                width={58}
+                height={32}
+              />
               <span className="font-mono text-lg font-bold tracking-[0.35em] sm:text-xl">
                 FRAME
               </span>
@@ -74,7 +78,14 @@ export default async function Home() {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
             Live expertise, on your terms
           </p>
-          <h1 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50">
+          <img
+            src="/logo.png"
+            alt=""
+            className="mx-auto mt-6 h-20 w-auto sm:h-24"
+            width={174}
+            height={96}
+          />
+          <h1 className="mt-6 text-balance text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50">
             Book video, audio, or messaging sessions with experts
           </h1>
           <p className="mt-4 text-pretty text-lg leading-relaxed text-zinc-600 dark:text-zinc-400">

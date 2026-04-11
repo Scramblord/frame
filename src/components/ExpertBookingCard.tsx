@@ -19,6 +19,7 @@ export type ExpertBookingCardProps = {
   scheduledAt: string | null;
   durationMinutes: number | null;
   status: string;
+  showLeaveReviewLink?: boolean;
 };
 
 export function ExpertBookingCard({
@@ -31,6 +32,7 @@ export function ExpertBookingCard({
   scheduledAt,
   durationMinutes,
   status,
+  showLeaveReviewLink = false,
 }: ExpertBookingCardProps) {
   return (
     <Link
@@ -85,6 +87,11 @@ export function ExpertBookingCard({
           <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
             {formatDurationMinutes(durationMinutes)}
           </p>
+          {showLeaveReviewLink ? (
+            <p className="mt-2 text-xs text-zinc-500 underline decoration-zinc-400/50 underline-offset-2 dark:text-zinc-400 dark:decoration-zinc-500/50">
+              Leave a review
+            </p>
+          ) : null}
         </div>
       </div>
     </Link>

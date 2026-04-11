@@ -11,6 +11,8 @@ export type BookingListRow = {
   expert_user_id: string;
   consumer_user_id?: string;
   created_at?: string;
+  consumer_reviewed?: boolean | null;
+  expert_reviewed?: boolean | null;
 };
 
 export async function enrichBookingsForConsumerCards(
@@ -60,6 +62,8 @@ export async function enrichBookingsForConsumerCards(
       scheduledAt: b.scheduled_at,
       durationMinutes: b.duration_minutes,
       status: b.status,
+      showLeaveReviewLink:
+        b.status === "completed" && b.consumer_reviewed === false,
     };
   });
 }

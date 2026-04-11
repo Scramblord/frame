@@ -13,7 +13,7 @@ type PageProps = {
 };
 
 const SELECT_FIELDS =
-  "id, scheduled_at, duration_minutes, status, session_type, service_id, expert_user_id, consumer_user_id, created_at";
+  "id, scheduled_at, duration_minutes, status, session_type, service_id, expert_user_id, consumer_user_id, created_at, consumer_reviewed, expert_reviewed";
 
 export default async function ExpertBookingsPage({ searchParams }: PageProps) {
   const { tab: tabParam } = await searchParams;

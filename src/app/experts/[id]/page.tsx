@@ -437,6 +437,8 @@ export default async function ExpertPublicPage({ params }: PageProps) {
                   {reviewRows.map((r) => {
                     const rev = reviewerMap.get(r.reviewer_id);
                     const rName = rev?.full_name?.trim() || "Client";
+                    const rFirst =
+                      rName.split(/\s+/).filter(Boolean)[0] ?? rName;
                     const rInitials = rName
                       .split(/\s+/)
                       .map((w: string) => w[0])
@@ -467,7 +469,7 @@ export default async function ExpertPublicPage({ params }: PageProps) {
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                                {rName}
+                                {rFirst}
                               </span>
                               <Stars rating={r.rating} />
                             </div>

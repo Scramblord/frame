@@ -1,4 +1,5 @@
 import { BookingCancelDialog } from "@/components/BookingCancelDialog";
+import { BookingReviewSection } from "@/components/BookingReviewSection";
 import {
   formatBookingDateTime,
   formatDurationMinutes,
@@ -47,7 +48,7 @@ export default async function BookingDetailPage({
   const { data: booking, error: bErr } = await supabase
     .from("bookings")
     .select(
-      "id, consumer_user_id, expert_user_id, service_id, session_type, scheduled_at, duration_minutes, status, total_amount, platform_fee, stripe_payment_intent_id, created_at",
+      "id, consumer_user_id, expert_user_id, service_id, session_type, scheduled_at, duration_minutes, status, total_amount, platform_fee, stripe_payment_intent_id, created_at, consumer_reviewed, expert_reviewed",
     )
     .eq("id", id)
     .maybeSingle();
@@ -76,6 +77,16 @@ export default async function BookingDetailPage({
     .select("name")
     .eq("id", booking.service_id)
     .maybeSingle();
+
+  const { data: consumerReviewRow } =
+    isConsumer && booking.consumer_reviewed
+      ? await supabase
+          .from("reviews")
+          .select("rating, comment")
+          .eq("booking_id", id)
+          .eq("reviewer_id", user.id)
+          .maybeSingle()
+      : { data: null };
 
   const expertName = expertProfile?.full_name?.trim() || "Expert";
   const expertInitials = expertName
@@ -324,6 +335,24 @@ export default async function BookingDetailPage({
           </div>
         </dl>
       </section>
+
+      {isConsumer ? (
+        <BookingReviewSection
+          bookingId={booking.id}
+          reviewerRole="consumer"
+          bookingStatus={booking.status}
+          reviewed={booking.consumer_reviewed === true}
+          revieweeName={expertName}
+          existingReview={
+            consumerReviewRow
+              ? {
+                  rating: consumerReviewRow.rating,
+                  comment: consumerReviewRow.comment,
+                }
+              : null
+          }
+        />
+      ) : null}
     </main>
   );
 }

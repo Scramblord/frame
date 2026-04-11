@@ -1,4 +1,5 @@
 import { BookingCancelDialog } from "@/components/BookingCancelDialog";
+import { BookingReviewSection } from "@/components/BookingReviewSection";
 import {
   formatBookingDateTime,
   formatDurationMinutes,
@@ -7,7 +8,6 @@ import {
   sessionTypeLabel,
   statusBadgeStyles,
 } from "@/lib/booking-display";
-import { reliabilityPercent } from "@/lib/cancellation";
 import { formatGbp } from "@/lib/experts-marketplace";
 import { canShowJoinSession } from "@/lib/session-access";
 import { createClient } from "@/lib/supabase/server";
@@ -43,7 +43,7 @@ export default async function ExpertBookingDetailPage({ params }: PageProps) {
   const { data: booking, error: bErr } = await supabase
     .from("bookings")
     .select(
-      "id, consumer_user_id, expert_user_id, service_id, session_type, scheduled_at, duration_minutes, status, total_amount, platform_fee, created_at",
+      "id, consumer_user_id, expert_user_id, service_id, session_type, scheduled_at, duration_minutes, status, total_amount, platform_fee, created_at, consumer_reviewed, expert_reviewed",
     )
     .eq("id", id)
     .maybeSingle();
@@ -58,17 +58,29 @@ export default async function ExpertBookingDetailPage({ params }: PageProps) {
 
   const { data: consumerProfile } = await supabase
     .from("profiles")
-    .select(
-      "full_name, avatar_url, consumer_sessions_kept, consumer_sessions_total",
-    )
+    .select("full_name, avatar_url")
     .eq("user_id", booking.consumer_user_id)
     .maybeSingle();
+
+  const { data: consumerBookingStatusRows } = await supabase
+    .from("bookings")
+    .select("status")
+    .eq("consumer_user_id", booking.consumer_user_id);
 
   const { data: serviceRow } = await supabase
     .from("services")
     .select("name")
     .eq("id", booking.service_id)
     .maybeSingle();
+
+  const { data: expertReviewRow } = booking.expert_reviewed
+    ? await supabase
+        .from("reviews")
+        .select("rating, comment")
+        .eq("booking_id", id)
+        .eq("reviewer_id", user.id)
+        .maybeSingle()
+    : { data: null };
 
   const consumerName = consumerProfile?.full_name?.trim() || "Client";
   const consumerInitials = consumerName
@@ -83,16 +95,25 @@ export default async function ExpertBookingDetailPage({ params }: PageProps) {
   const canCancel =
     booking.status === "pending_payment" ||
     booking.status === "confirmed";
-  const consumerSessionsTotalRaw = Number(
-    consumerProfile?.consumer_sessions_total ?? 0,
-  );
-  const consumerSessionsTotal = Number.isFinite(consumerSessionsTotalRaw)
-    ? consumerSessionsTotalRaw
-    : 0;
-  const consumerReliability = reliabilityPercent(
-    consumerProfile?.consumer_sessions_kept ?? 0,
-    consumerSessionsTotal,
-  );
+  const statusRows = consumerBookingStatusRows ?? [];
+  const totalConsumerBookings = statusRows.length;
+  let completedForReliability = 0;
+  let cancelledForReliability = 0;
+  let noShowForReliability = 0;
+  for (const row of statusRows) {
+    const s = row.status;
+    if (s === "completed") completedForReliability += 1;
+    else if (s === "cancelled") cancelledForReliability += 1;
+    else if (s === "no_show") noShowForReliability += 1;
+  }
+  const reliabilityDenominator =
+    completedForReliability + cancelledForReliability + noShowForReliability;
+  const consumerReliabilityPct =
+    totalConsumerBookings >= 3 && reliabilityDenominator > 0
+      ? Math.round(
+          (completedForReliability / reliabilityDenominator) * 100,
+        )
+      : null;
   const startingSoon =
     booking.scheduled_at != null &&
     within15MinutesBeforeStart(booking.scheduled_at);
@@ -143,13 +164,19 @@ export default async function ExpertBookingDetailPage({ params }: PageProps) {
           <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
             {consumerName}
           </p>
-          {consumerSessionsTotal < 3 ? (
+          {totalConsumerBookings < 3 ? (
             <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
               New client
             </p>
-          ) : consumerReliability != null ? (
+          ) : consumerReliabilityPct != null ? (
             <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-              Client reliability: {consumerReliability}%
+              Reliability: {consumerReliabilityPct}%
+            </p>
+          ) : null}
+          {consumerReliabilityPct != null && noShowForReliability > 0 ? (
+            <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
+              ⚠️ {noShowForReliability} no-show
+              {noShowForReliability === 1 ? "" : "s"}
             </p>
           ) : null}
         </div>
@@ -257,6 +284,22 @@ export default async function ExpertBookingDetailPage({ params }: PageProps) {
           </div>
         </dl>
       </section>
+
+      <BookingReviewSection
+        bookingId={booking.id}
+        reviewerRole="expert"
+        bookingStatus={booking.status}
+        reviewed={booking.expert_reviewed === true}
+        revieweeName={consumerName}
+        existingReview={
+          expertReviewRow
+            ? {
+                rating: expertReviewRow.rating,
+                comment: expertReviewRow.comment,
+              }
+            : null
+        }
+      />
     </main>
   );
 }

@@ -95,10 +95,14 @@ export default function OnboardingPage() {
       <div className="relative w-full max-w-lg">
         <div className="rounded-2xl border border-zinc-200/80 bg-white/90 p-8 shadow-xl shadow-zinc-900/5 backdrop-blur-sm dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-black/40 sm:p-10">
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-xl border-2 border-zinc-900 bg-zinc-900 text-white shadow-md dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900">
-              <span className="font-mono text-xs font-bold tracking-[0.2em]">
-                FR
-              </span>
+            <div className="mb-5 flex justify-center">
+              <img
+                src="/logo.png"
+                alt=""
+                className="h-14 w-auto"
+                width={101}
+                height={56}
+              />
             </div>
             <h1 className="font-mono text-4xl font-bold tracking-[0.35em] text-zinc-900 dark:text-zinc-50 sm:text-5xl">
               FRAME

@@ -372,10 +372,14 @@ export default function ExpertSetupPage() {
 
       <div className="relative mx-auto w-full max-w-2xl">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl border-2 border-zinc-900 bg-zinc-900 text-white shadow-md dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900">
-            <span className="font-mono text-[10px] font-bold tracking-[0.2em]">
-              FR
-            </span>
+          <div className="mb-4 flex justify-center">
+            <img
+              src="/logo.png"
+              alt=""
+              className="h-12 w-auto"
+              width={87}
+              height={48}
+            />
           </div>
           <h1 className="font-mono text-3xl font-bold tracking-[0.35em] text-zinc-900 dark:text-zinc-50 sm:text-4xl">
             FRAME

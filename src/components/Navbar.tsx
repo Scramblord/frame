@@ -45,9 +45,13 @@ export default async function Navbar() {
             href="/"
             className="flex shrink-0 items-center gap-2 text-zinc-900 dark:text-zinc-50"
           >
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border-2 border-zinc-900 bg-zinc-900 font-mono text-[10px] font-bold tracking-[0.15em] text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900">
-              FR
-            </span>
+            <img
+              src="/logo.png"
+              alt=""
+              className="h-8 w-auto shrink-0"
+              width={58}
+              height={32}
+            />
             <span className="font-mono text-lg font-bold tracking-[0.35em] sm:text-xl">
               FRAME
             </span>

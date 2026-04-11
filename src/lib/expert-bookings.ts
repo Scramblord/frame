@@ -56,6 +56,8 @@ export async function enrichBookingsForExpertCards(
       scheduledAt: b.scheduled_at,
       durationMinutes: b.duration_minutes,
       status: b.status,
+      showLeaveReviewLink:
+        b.status === "completed" && b.expert_reviewed === false,
     };
   });
 }

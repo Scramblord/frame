@@ -85,9 +85,24 @@ export async function POST(request: Request) {
   }
 
   const roomName = roomNameForBooking(booking.id);
-  const existingUrl = booking.daily_room_url?.trim();
+  let resolvedRoomUrl =
+    typeof booking.daily_room_url === "string"
+      ? booking.daily_room_url.trim()
+      : "";
 
-  if (existingUrl) {
+  if (!resolvedRoomUrl) {
+    const { data: urlRow } = await createServiceRoleClient()
+      .from("bookings")
+      .select("daily_room_url")
+      .eq("id", bookingId)
+      .maybeSingle();
+    const snap = urlRow?.daily_room_url;
+    if (typeof snap === "string" && snap.trim().length > 0) {
+      resolvedRoomUrl = snap.trim();
+    }
+  }
+
+  if (resolvedRoomUrl.length > 0) {
     const adminSync = createServiceRoleClient();
     await adminSync
       .from("bookings")
@@ -96,7 +111,7 @@ export async function POST(request: Request) {
       .in("status", ["confirmed", "in_progress"]);
     return NextResponse.json({
       roomName,
-      roomUrl: existingUrl,
+      roomUrl: resolvedRoomUrl,
     });
   }
 

@@ -46,6 +46,8 @@ export function SessionRoomClient({ bookingId, exitHref }: Props) {
 
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
+  /** Single in-flight POST /api/session/create-room per mount — coalesces duplicate calls. */
+  const createRoomRequestRef = useRef<Promise<Response> | null>(null);
 
   const completeSession = useCallback(
     async (reason: string) => {
@@ -131,11 +133,16 @@ export function SessionRoomClient({ bookingId, exitHref }: Props) {
 
     async function boot() {
       try {
-        const cr = await fetch("/api/session/create-room", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ bookingId }),
-        });
+        if (!createRoomRequestRef.current) {
+          createRoomRequestRef.current = fetch("/api/session/create-room", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bookingId }),
+          }).finally(() => {
+            createRoomRequestRef.current = null;
+          });
+        }
+        const cr = await createRoomRequestRef.current;
         if (!cr.ok) {
           const j = (await cr.json().catch(() => ({}))) as { error?: string };
           throw new Error(j.error ?? "Could not create room");

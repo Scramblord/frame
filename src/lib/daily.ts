@@ -23,8 +23,46 @@ export type CreateDailyRoomResult =
   | { ok: true; roomName: string; roomUrl: string }
   | { ok: false; error: string };
 
+function dailyDuplicateRoomHeuristic(status: number, body: unknown): boolean {
+  if (status === 409) return true;
+  const text =
+    typeof body === "string"
+      ? body
+      : JSON.stringify(body ?? {}).toLowerCase();
+  return /already\s+exists|already-exists|duplicate|name-taken|name_taken|room.*exists|not\s+unique|unique.*constraint|conflict/i.test(
+    text,
+  );
+}
+
+async function fetchDailyRoomByName(
+  apiKey: string,
+  roomName: string,
+): Promise<{ ok: true; roomName: string; roomUrl: string } | { ok: false }> {
+  try {
+    const res = await fetch(
+      `${DAILY_API_BASE}/rooms/${encodeURIComponent(roomName)}`,
+      {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      },
+    );
+    const data = (await res.json()) as {
+      url?: string;
+      name?: string;
+      error?: string;
+    };
+    if (!res.ok || !data.url || !data.name) {
+      return { ok: false };
+    }
+    return { ok: true, roomName: data.name, roomUrl: data.url };
+  } catch (e) {
+    console.error("fetchDailyRoomByName", e);
+    return { ok: false };
+  }
+}
+
 /**
  * Creates a private Daily room for a booking. Room name: `frame-{bookingId}`.
+ * If create fails because the room already exists, fetches it via GET /rooms/:name.
  */
 export async function createDailyRoom(params: {
   bookingId: string;
@@ -60,13 +98,32 @@ export async function createDailyRoom(params: {
       }),
     });
 
-    const data = (await res.json()) as {
-      url?: string;
-      name?: string;
-      error?: string;
-    };
+    let data: { url?: string; name?: string; error?: string };
+    try {
+      data = (await res.json()) as {
+        url?: string;
+        name?: string;
+        error?: string;
+      };
+    } catch {
+      data = {};
+    }
 
     if (!res.ok) {
+      if (dailyDuplicateRoomHeuristic(res.status, data)) {
+        console.log("[frame:daily] create returned duplicate/conflict, fetching room", {
+          roomName: name,
+          status: res.status,
+        });
+        const existing = await fetchDailyRoomByName(apiKey, name);
+        if (existing.ok) {
+          return {
+            ok: true,
+            roomName: existing.roomName,
+            roomUrl: existing.roomUrl,
+          };
+        }
+      }
       return {
         ok: false,
         error: data.error ?? `Daily create room failed (${res.status})`,

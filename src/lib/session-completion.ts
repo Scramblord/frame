@@ -188,7 +188,7 @@ export async function completeSession(params: {
 
 /**
  * Worker-only: claim row (FOR UPDATE SKIP LOCKED via RPC), Stripe transfer, update status.
- * Idempotent Stripe: `frame_booking_payout_${bookingId}`.
+ * Idempotent Stripe: `frame_booking_payout_v2_${bookingId}`.
  */
 export async function processBookingPayout(
   bookingId: string,
@@ -222,6 +222,7 @@ export async function processBookingPayout(
     platform_fee: unknown;
     expert_stripe_account_id: string | null;
     stripe_transfer_id: string | null;
+    stripe_payment_intent_id: string | null;
   };
 
   const totalGbp = Number(booking.total_amount);
@@ -277,18 +278,39 @@ export async function processBookingPayout(
   }
 
   try {
+    const piId = booking.stripe_payment_intent_id?.trim();
+    if (!piId) {
+      throw new Error(
+        "Booking missing stripe_payment_intent_id — cannot tie transfer to charge",
+      );
+    }
+
+    const pi = await stripe.paymentIntents.retrieve(piId);
+    const lc = pi.latest_charge;
+    const chargeId =
+      typeof lc === "string"
+        ? lc
+        : lc && typeof lc === "object" && "id" in lc
+          ? String((lc as { id: string }).id)
+          : null;
+    if (!chargeId) {
+      throw new Error("PaymentIntent has no latest_charge");
+    }
+
     console.log("[frame:processBookingPayout] Stripe transfer create", {
       bookingId,
       transferPence,
+      source_transaction: chargeId,
     });
     const transfer = await stripe.transfers.create(
       {
         amount: transferPence,
         currency: "gbp",
         destination,
+        source_transaction: chargeId,
         transfer_group: `booking_${bookingId}`,
       },
-      { idempotencyKey: `frame_booking_payout_${bookingId}` },
+      { idempotencyKey: `frame_booking_payout_v2_${bookingId}` },
     );
 
     const { error: upErr, data: upRows } = await admin

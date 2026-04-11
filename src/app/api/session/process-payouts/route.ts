@@ -7,22 +7,7 @@ export const runtime = "nodejs";
 
 const HEADER = "x-payout-worker-secret";
 
-export async function POST(request: Request) {
-  const secret = process.env.PAYOUT_WORKER_SECRET;
-  if (!secret || secret.trim() === "") {
-    console.error("[frame:process-payouts] PAYOUT_WORKER_SECRET is not set");
-    return NextResponse.json(
-      { error: "Server misconfiguration" },
-      { status: 500 },
-    );
-  }
-
-  const got = request.headers.get(HEADER);
-  if (got !== secret) {
-    console.log("[frame:process-payouts] unauthorized — bad or missing secret");
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+async function runProcessPayouts(): Promise<NextResponse> {
   const admin = createServiceRoleClient();
   const nowIso = new Date().toISOString();
 
@@ -86,4 +71,50 @@ export async function POST(request: Request) {
   };
   console.log("[frame:process-payouts] done", summary);
   return NextResponse.json(summary);
+}
+
+export async function POST(request: Request) {
+  const secret = process.env.PAYOUT_WORKER_SECRET;
+  if (!secret || secret.trim() === "") {
+    console.error("[frame:process-payouts] PAYOUT_WORKER_SECRET is not set");
+    return NextResponse.json(
+      { error: "Server misconfiguration" },
+      { status: 500 },
+    );
+  }
+
+  const got = request.headers.get(HEADER);
+  if (got !== secret) {
+    console.log("[frame:process-payouts] unauthorized — bad or missing secret");
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  return runProcessPayouts();
+}
+
+export async function GET(request: Request) {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || cronSecret.trim() === "") {
+    console.error("[frame:process-payouts] CRON_SECRET is not set");
+    return NextResponse.json(
+      { error: "Server misconfiguration" },
+      { status: 500 },
+    );
+  }
+
+  const auth = request.headers.get("Authorization");
+  const token =
+    auth != null && auth.startsWith("Bearer ")
+      ? auth.slice("Bearer ".length).trim()
+      : null;
+
+  if (!token || token !== cronSecret) {
+    console.log(
+      "[frame:process-payouts] unauthorized — bad or missing Bearer token",
+    );
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  console.log("[frame:process-payouts] run triggered by Vercel cron");
+  return runProcessPayouts();
 }

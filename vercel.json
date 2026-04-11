@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/session/process-payouts",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}

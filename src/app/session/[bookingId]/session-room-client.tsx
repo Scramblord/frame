@@ -75,6 +75,14 @@ export function SessionRoomClient({ bookingId, exitHref }: Props) {
         } catch {
           parsed = raw;
         }
+        console.log("[frame:session-complete] POST /api/session/complete response (full)", {
+          reason,
+          bookingId,
+          status: res.status,
+          ok: res.ok,
+          bodyRaw: raw,
+          bodyParsed: parsed,
+        });
         console.log("[frame:session-complete] response", {
           reason,
           bookingId,
@@ -252,6 +260,11 @@ export function SessionRoomClient({ bookingId, exitHref }: Props) {
               clearInterval(timerRef.current);
               timerRef.current = null;
             }
+            console.log("[frame:session-complete] timer-zero ref check", {
+              bookingId,
+              completionDoneRef: completionDoneRef.current,
+              completionInFlightRef: completionInFlightRef.current,
+            });
             if (!completionDoneRef.current && !completionInFlightRef.current) {
               void completeSession("timer-zero").then(() => {
                 void callObject.leave().then(() => {

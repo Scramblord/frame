@@ -153,33 +153,67 @@ export default async function ExpertDashboardPage() {
       <Navbar />
       <ActiveSessionBanner />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
-        {!stripeOnboardingComplete ? (
-          <div className="mb-8 rounded-2xl border border-amber-300/80 bg-amber-50 px-4 py-4 shadow-sm dark:border-amber-700/80 dark:bg-amber-950/40 sm:px-5 sm:py-4">
-            <p className="text-sm font-medium text-amber-950 dark:text-amber-100">
-              You need to connect your bank account before you can accept
-              bookings and receive payouts.
-            </p>
-            <p className="mt-2 text-sm text-amber-900/90 dark:text-amber-200/90">
-              Complete Stripe Connect onboarding to receive earnings from
-              completed sessions.
-            </p>
-            <Link
-              href="/expert/connect"
-              className="mt-3 inline-flex rounded-xl bg-amber-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-800 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-100"
-            >
-              Connect bank account
-            </Link>
-          </div>
-        ) : null}
+        <h1 className="sr-only">Expert dashboard</h1>
+        <section className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+            Upcoming bookings
+          </h2>
+          {expertUpcomingCards.length === 0 ? (
+            <>
+              <p className="mt-4 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-400">
+                No upcoming sessions yet.
+              </p>
+              <div className="mt-5">
+                <Link
+                  href="/expert/bookings"
+                  className="text-sm font-semibold text-zinc-700 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100"
+                >
+                  View all bookings
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <ul className="mt-4 space-y-3">
+                {expertUpcomingCards.map((card) => (
+                  <li key={card.bookingId}>
+                    <ExpertBookingCard {...card} />
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-5">
+                <Link
+                  href="/expert/bookings"
+                  className="text-sm font-semibold text-zinc-700 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100"
+                >
+                  View all bookings
+                </Link>
+              </div>
+            </>
+          )}
+        </section>
 
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Expert dashboard
-        </h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          Manage your profile and sessions.
-        </p>
+        <div className="mt-10 flex flex-col gap-10">
+          {!stripeOnboardingComplete ? (
+            <div className="rounded-2xl border border-amber-300/80 bg-amber-50 px-4 py-4 shadow-sm dark:border-amber-700/80 dark:bg-amber-950/40 sm:px-5 sm:py-4">
+              <p className="text-sm font-medium text-amber-950 dark:text-amber-100">
+                You need to connect your bank account before you can accept
+                bookings and receive payouts.
+              </p>
+              <p className="mt-2 text-sm text-amber-900/90 dark:text-amber-200/90">
+                Complete Stripe Connect onboarding to receive earnings from
+                completed sessions.
+              </p>
+              <Link
+                href="/expert/connect"
+                className="mt-3 inline-flex rounded-xl bg-amber-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-800 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-100"
+              >
+                Connect bank account
+              </Link>
+            </div>
+          ) : null}
 
-        <section className="mt-8 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
+          <section className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
@@ -289,7 +323,7 @@ export default async function ExpertDashboardPage() {
           </div>
         </section>
 
-        <section className="mt-8 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
+          <section className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
@@ -334,7 +368,7 @@ export default async function ExpertDashboardPage() {
           )}
         </section>
 
-        <section className="mt-8 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
+          <section className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             Earnings
           </h2>
@@ -447,46 +481,7 @@ export default async function ExpertDashboardPage() {
           ) : null}
         </section>
 
-        <section className="mt-8 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-            Upcoming bookings
-          </h2>
-          {expertUpcomingCards.length === 0 ? (
-            <>
-              <p className="mt-4 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-400">
-                No upcoming sessions yet.
-              </p>
-              <div className="mt-5 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-                <Link
-                  href="/expert/bookings"
-                  className="text-sm font-semibold text-zinc-700 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100"
-                >
-                  View all bookings
-                </Link>
-              </div>
-            </>
-          ) : (
-            <>
-              <ul className="mt-4 space-y-3">
-                {expertUpcomingCards.map((card) => (
-                  <li key={card.bookingId}>
-                    <ExpertBookingCard {...card} />
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-5 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-                <Link
-                  href="/expert/bookings"
-                  className="text-sm font-semibold text-zinc-700 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100"
-                >
-                  View all bookings
-                </Link>
-              </div>
-            </>
-          )}
-        </section>
-
-        <section className="mt-8 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
+          <section className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             Your stats
           </h2>
@@ -522,6 +517,7 @@ export default async function ExpertDashboardPage() {
             </div>
           </dl>
         </section>
+        </div>
       </main>
     </div>
   );

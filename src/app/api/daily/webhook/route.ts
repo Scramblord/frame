@@ -1,4 +1,4 @@
-import { runSessionCompletion } from "@/lib/session-completion";
+import { completeSession } from "@/lib/session-completion";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true });
   }
 
-  const result = await runSessionCompletion({
+  const result = await completeSession({
     bookingId,
     fromDailyWebhook: true,
   });

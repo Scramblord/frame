@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/server";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import Script from "next/script";
 
 export const dynamic = "force-dynamic";
 
@@ -100,6 +101,7 @@ export default async function BookingDetailPage({
   const total = Number(booking.total_amount);
   const showSuccessBanner = successParam === "true";
   const pendingPayment = booking.status === "pending_payment";
+  const showConfirmingPaymentMessage = showSuccessBanner && !pendingPayment;
   const canCancel =
     isConsumer &&
     (booking.status === "pending_payment" ||
@@ -121,6 +123,7 @@ export default async function BookingDetailPage({
     booking.status === "completed" ||
     booking.status === "cancelled" ||
     booking.status === "no_show";
+  const showJoinSessionActions = booking.status === "confirmed";
 
   const backHref = isConsumer ? "/bookings" : "/expert/bookings";
 
@@ -194,7 +197,7 @@ export default async function BookingDetailPage({
         </div>
       ) : null}
 
-      {pendingPayment ? (
+      {showConfirmingPaymentMessage ? (
         <p className="mt-6 rounded-xl border border-zinc-200 bg-zinc-100/80 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-400">
           Confirming payment… This usually takes a few seconds. Refresh if the
           status doesn&apos;t update.
@@ -204,7 +207,7 @@ export default async function BookingDetailPage({
       {isConsumer ? (
         !hideJoinSession || canCancel ? (
           <div className="mt-8 space-y-3 rounded-2xl border border-zinc-200/80 bg-white p-5 dark:border-zinc-700/80 dark:bg-zinc-900">
-            {!hideJoinSession ? (
+            {!hideJoinSession && showJoinSessionActions ? (
               <div>
                 {showAvSession && joinActive ? (
                   <Link
@@ -250,7 +253,7 @@ export default async function BookingDetailPage({
             />
           </div>
         ) : null
-      ) : showAvSession && !hideJoinSession ? (
+      ) : showAvSession && !hideJoinSession && showJoinSessionActions ? (
         <div className="mt-8 space-y-3 rounded-2xl border border-zinc-200/80 bg-white p-5 dark:border-zinc-700/80 dark:bg-zinc-900">
           <div>
             <>
@@ -285,6 +288,28 @@ export default async function BookingDetailPage({
       ) : null}
 
       <section className="mt-8 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
+        {pendingPayment ? (
+          <div className="mb-5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
+            <p>
+              Payment incomplete — this slot will be released in 15 minutes if
+              payment is not completed.
+            </p>
+            <div className="mt-3 flex flex-col gap-2">
+              <button
+                type="button"
+                className="resume-payment-btn inline-flex w-fit items-center justify-center rounded-lg bg-amber-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-amber-500 dark:hover:bg-amber-400"
+                data-booking-id={booking.id}
+                data-default-label="Complete payment"
+              >
+                Complete payment
+              </button>
+              <p
+                className="resume-payment-error hidden text-sm text-rose-700 dark:text-rose-300"
+                aria-live="polite"
+              />
+            </div>
+          </div>
+        ) : null}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
             Summary
@@ -353,6 +378,52 @@ export default async function BookingDetailPage({
           }
         />
       ) : null}
+      <Script
+        id="resume-payment-handler-detail"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `
+            (() => {
+              const buttons = document.querySelectorAll('.resume-payment-btn');
+              for (const button of buttons) {
+                if (!(button instanceof HTMLButtonElement)) continue;
+                button.addEventListener('click', async () => {
+                  const bookingId = button.dataset.bookingId || '';
+                  if (!bookingId) return;
+                  const errorNode = button.parentElement?.querySelector('.resume-payment-error');
+                  if (errorNode instanceof HTMLElement) {
+                    errorNode.textContent = '';
+                    errorNode.classList.add('hidden');
+                  }
+                  const defaultLabel = button.dataset.defaultLabel || 'Complete payment';
+                  button.disabled = true;
+                  button.textContent = 'Loading...';
+                  try {
+                    const res = await fetch('/api/bookings/resume-payment', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ bookingId }),
+                    });
+                    const json = await res.json().catch(() => ({}));
+                    if (!res.ok || typeof json?.url !== 'string' || !json.url) {
+                      throw new Error(json?.error || 'Could not start payment');
+                    }
+                    window.location.href = json.url;
+                  } catch (error) {
+                    if (errorNode instanceof HTMLElement) {
+                      errorNode.textContent = error instanceof Error ? error.message : 'Could not start payment';
+                      errorNode.classList.remove('hidden');
+                    }
+                  } finally {
+                    button.disabled = false;
+                    button.textContent = defaultLabel;
+                  }
+                });
+              }
+            })();
+          `,
+        }}
+      />
     </main>
   );
 }

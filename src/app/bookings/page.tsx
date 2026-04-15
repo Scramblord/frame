@@ -1,12 +1,22 @@
 import { ConsumerBookingCard } from "@/components/ConsumerBookingCard";
 import { PastBookingsFilteredList } from "@/components/PastBookingsFilteredList";
 import {
+  formatBookingDateTime,
+  formatDurationMinutes,
+  formatStatusLabel,
+  sessionTypeIcon,
+  sessionTypeLabel,
+  statusBadgeStyles,
+} from "@/lib/booking-display";
+import {
   enrichBookingsForConsumerCards,
   type BookingListRow,
 } from "@/lib/consumer-bookings";
 import { createClient } from "@/lib/supabase/server";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import Script from "next/script";
 
 export const dynamic = "force-dynamic";
 
@@ -121,13 +131,138 @@ export default async function ConsumerBookingsPage({ searchParams }: PageProps) 
         <PastBookingsFilteredList variant="consumer" cards={cards} />
       ) : (
         <ul className="mt-8 space-y-3">
-          {cards.map((c) => (
-            <li key={c.bookingId}>
-              <ConsumerBookingCard {...c} />
-            </li>
-          ))}
+          {cards.map((c) =>
+            c.status === "pending_payment" ? (
+              <li key={c.bookingId}>
+                <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
+                  <Link href={`/bookings/${c.bookingId}`} className="block">
+                    <div className="flex gap-4">
+                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800">
+                        {c.expertAvatarUrl ? (
+                          <Image
+                            src={c.expertAvatarUrl}
+                            alt=""
+                            fill
+                            className="object-cover"
+                            sizes="56px"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-zinc-500 dark:text-zinc-400">
+                            {c.expertInitials}
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <p className="font-semibold text-zinc-900 dark:text-zinc-50">
+                            {c.expertName}
+                          </p>
+                          <span
+                            className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusBadgeStyles(c.status)}`}
+                          >
+                            {formatStatusLabel(c.status)}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                          {c.serviceName}
+                        </p>
+                        <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300">
+                          <span className="mr-1.5" aria-hidden>
+                            {sessionTypeIcon(c.sessionType)}
+                          </span>
+                          {sessionTypeLabel(c.sessionType)}
+                        </p>
+                        {c.scheduledAt ? (
+                          <p className="mt-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                            {formatBookingDateTime(c.scheduledAt)}
+                          </p>
+                        ) : (
+                          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                            Time to be arranged
+                          </p>
+                        )}
+                        <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                          {formatDurationMinutes(c.durationMinutes)}
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                  <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
+                    <p>
+                      Payment incomplete — this slot will be released in 15
+                      minutes if payment is not completed.
+                    </p>
+                    <div className="mt-3 flex items-center gap-3">
+                      <button
+                        type="button"
+                        className="resume-payment-btn rounded-lg bg-amber-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-amber-500 dark:hover:bg-amber-400"
+                        data-booking-id={c.bookingId}
+                        data-default-label="Complete payment"
+                      >
+                        Complete payment
+                      </button>
+                      <p
+                        className="resume-payment-error hidden text-sm text-rose-700 dark:text-rose-300"
+                        aria-live="polite"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </li>
+            ) : (
+              <li key={c.bookingId}>
+                <ConsumerBookingCard {...c} />
+              </li>
+            ),
+          )}
         </ul>
       )}
+      <Script
+        id="resume-payment-handler"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `
+            (() => {
+              const buttons = document.querySelectorAll('.resume-payment-btn');
+              for (const button of buttons) {
+                if (!(button instanceof HTMLButtonElement)) continue;
+                button.addEventListener('click', async () => {
+                  const bookingId = button.dataset.bookingId || '';
+                  if (!bookingId) return;
+                  const errorNode = button.parentElement?.querySelector('.resume-payment-error');
+                  if (errorNode instanceof HTMLElement) {
+                    errorNode.textContent = '';
+                    errorNode.classList.add('hidden');
+                  }
+                  const defaultLabel = button.dataset.defaultLabel || 'Complete payment';
+                  button.disabled = true;
+                  button.textContent = 'Loading...';
+                  try {
+                    const res = await fetch('/api/bookings/resume-payment', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ bookingId }),
+                    });
+                    const json = await res.json().catch(() => ({}));
+                    if (!res.ok || typeof json?.url !== 'string' || !json.url) {
+                      throw new Error(json?.error || 'Could not start payment');
+                    }
+                    window.location.href = json.url;
+                  } catch (error) {
+                    if (errorNode instanceof HTMLElement) {
+                      errorNode.textContent = error instanceof Error ? error.message : 'Could not start payment';
+                      errorNode.classList.remove('hidden');
+                    }
+                  } finally {
+                    button.disabled = false;
+                    button.textContent = defaultLabel;
+                  }
+                });
+              }
+            })();
+          `,
+        }}
+      />
     </main>
   );
 }

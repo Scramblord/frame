@@ -360,175 +360,167 @@ export default function ExpertSetupPage() {
   }
 
   return (
-    <div className="relative min-h-full flex-1 overflow-hidden bg-gradient-to-b from-zinc-100 to-zinc-200/90 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900 sm:px-6 sm:py-16">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.35] dark:opacity-25"
-        style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, rgb(113 113 122 / 0.35) 1px, transparent 0)`,
-          backgroundSize: "24px 24px",
-        }}
-      />
+    <div className="flex min-h-full flex-1 flex-col bg-gradient-to-b from-zinc-100 to-zinc-200/90 dark:from-zinc-950 dark:to-zinc-900">
+      <div className="relative flex-1 overflow-hidden px-4 py-12 sm:px-6 sm:py-16">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.35] dark:opacity-25"
+          style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, rgb(113 113 122 / 0.35) 1px, transparent 0)`,
+            backgroundSize: "24px 24px",
+          }}
+        />
 
-      <div className="relative mx-auto w-full max-w-2xl">
-        <div className="mb-8 text-center">
-          <div className="mb-4 flex justify-center">
-            <img
-              src="/logo.png"
-              alt=""
-              className="h-12 w-auto"
-              width={87}
-              height={48}
-            />
+        <div className="relative mx-auto w-full max-w-2xl">
+          <div className="mb-8 text-center">
+            <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+              Expert profile setup
+            </p>
           </div>
-          <h1 className="font-mono text-3xl font-bold tracking-[0.35em] text-zinc-900 dark:text-zinc-50 sm:text-4xl">
-            FRAME
-          </h1>
-          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-            Expert profile setup
-          </p>
         </div>
 
-        <form
-          onSubmit={(e) => void handleSubmit(e)}
-          className="space-y-8 rounded-2xl border border-zinc-200/80 bg-white/90 p-6 shadow-xl shadow-zinc-900/5 backdrop-blur-sm dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-black/40 sm:p-8"
-        >
-          <div>
-            <label
-              htmlFor="bio"
-              className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-            >
-              Bio
-            </label>
-            <textarea
-              id="bio"
-              name="bio"
-              rows={5}
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder="What you do, who you help, and what clients can expect…"
-              className="mt-1.5 w-full resize-y rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 shadow-sm outline-none placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:ring-zinc-100/20"
-            />
-          </div>
-
-          <div>
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Keywords & specialities
-            </span>
-            <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-              Add tags; press Enter to save each one.
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800">
-              {tags.map((t) => (
-                <span
-                  key={t}
-                  className="inline-flex items-center gap-1 rounded-full bg-zinc-100 py-1 pl-2.5 pr-1 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-100"
-                >
-                  {t}
-                  <button
-                    type="button"
-                    onClick={() => removeTag(t)}
-                    className="rounded-full p-0.5 text-zinc-500 transition hover:bg-zinc-200 hover:text-zinc-800 dark:hover:bg-zinc-600 dark:hover:text-zinc-100"
-                    aria-label={`Remove ${t}`}
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-              <input
-                type="text"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addTag(tagInput);
-                  }
-                }}
-                placeholder="e.g. career coaching"
-                className="min-w-[10rem] flex-1 border-0 bg-transparent py-1 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-zinc-100"
+        <div className="relative mx-auto w-full max-w-2xl">
+          <form
+            onSubmit={(e) => void handleSubmit(e)}
+            className="space-y-8 rounded-2xl border border-zinc-200/80 bg-white/90 p-6 shadow-xl shadow-zinc-900/5 backdrop-blur-sm dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-black/40 sm:p-8"
+          >
+            <div>
+              <label
+                htmlFor="bio"
+                className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              >
+                Bio
+              </label>
+              <textarea
+                id="bio"
+                name="bio"
+                rows={5}
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="What you do, who you help, and what clients can expect…"
+                className="mt-1.5 w-full resize-y rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 shadow-sm outline-none placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:ring-zinc-100/20"
               />
             </div>
-          </div>
-
-          <div>
-            <label
-              htmlFor="timezone"
-              className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-            >
-              Timezone
-            </label>
-            <select
-              id="timezone"
-              name="timezone"
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-              className={sessionSelectClass}
-            >
-              {timezones.map((tz) => (
-                <option key={tz} value={tz}>
-                  {tz}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="border-t border-zinc-200 pt-8 dark:border-zinc-700">
-            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
-              Your services
-            </h2>
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-              Add one or more offerings — each can have its own session length
-              and pricing.
-            </p>
-
-            <div className="mt-6 space-y-8">
-              {services.map((s, idx) => (
-                <ServiceFields
-                  key={s.clientKey}
-                  index={idx}
-                  s={s}
-                  sessionSelectClass={sessionSelectClass}
-                  minOptions={SESSION_OPTIONS.filter(
-                    (m) => m <= s.max_session_minutes,
-                  )}
-                  maxOptions={SESSION_OPTIONS.filter(
-                    (m) => m >= s.min_session_minutes,
-                  )}
-                  formatMinutesLabel={formatMinutesLabel}
-                  onChange={(patch) => updateService(s.clientKey, patch)}
-                  onRemove={() => removeService(s.clientKey)}
-                  canRemove={services.length > 1}
+  
+            <div>
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Keywords & specialities
+              </span>
+              <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                Add tags; press Enter to save each one.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800">
+                {tags.map((t) => (
+                  <span
+                    key={t}
+                    className="inline-flex items-center gap-1 rounded-full bg-zinc-100 py-1 pl-2.5 pr-1 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-100"
+                  >
+                    {t}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(t)}
+                      className="rounded-full p-0.5 text-zinc-500 transition hover:bg-zinc-200 hover:text-zinc-800 dark:hover:bg-zinc-600 dark:hover:text-zinc-100"
+                      aria-label={`Remove ${t}`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addTag(tagInput);
+                    }
+                  }}
+                  placeholder="e.g. career coaching"
+                  className="min-w-[10rem] flex-1 border-0 bg-transparent py-1 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-zinc-100"
                 />
-              ))}
+              </div>
             </div>
-
+  
+            <div>
+              <label
+                htmlFor="timezone"
+                className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              >
+                Timezone
+              </label>
+              <select
+                id="timezone"
+                name="timezone"
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+                className={sessionSelectClass}
+              >
+                {timezones.map((tz) => (
+                  <option key={tz} value={tz}>
+                    {tz}
+                  </option>
+                ))}
+              </select>
+            </div>
+  
+            <div className="border-t border-zinc-200 pt-8 dark:border-zinc-700">
+              <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
+                Your services
+              </h2>
+              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                Add one or more offerings — each can have its own session length
+                and pricing.
+              </p>
+  
+              <div className="mt-6 space-y-8">
+                {services.map((s, idx) => (
+                  <ServiceFields
+                    key={s.clientKey}
+                    index={idx}
+                    s={s}
+                    sessionSelectClass={sessionSelectClass}
+                    minOptions={SESSION_OPTIONS.filter(
+                      (m) => m <= s.max_session_minutes,
+                    )}
+                    maxOptions={SESSION_OPTIONS.filter(
+                      (m) => m >= s.min_session_minutes,
+                    )}
+                    formatMinutesLabel={formatMinutesLabel}
+                    onChange={(patch) => updateService(s.clientKey, patch)}
+                    onRemove={() => removeService(s.clientKey)}
+                    canRemove={services.length > 1}
+                  />
+                ))}
+              </div>
+  
+              <button
+                type="button"
+                onClick={addService}
+                className="mt-6 w-full rounded-xl border border-dashed border-zinc-300 bg-zinc-50/80 py-3 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800/50 dark:text-zinc-300 dark:hover:border-zinc-500"
+              >
+                Add another service
+              </button>
+            </div>
+  
+            {error ? (
+              <p
+                className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200"
+                role="alert"
+              >
+                {error}
+              </p>
+            ) : null}
+  
             <button
-              type="button"
-              onClick={addService}
-              className="mt-6 w-full rounded-xl border border-dashed border-zinc-300 bg-zinc-50/80 py-3 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800/50 dark:text-zinc-300 dark:hover:border-zinc-500"
+              type="submit"
+              disabled={submitting}
+              className="w-full rounded-xl bg-zinc-900 py-3.5 text-sm font-semibold text-white shadow-md transition hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
             >
-              Add another service
+              {submitting ? "Saving…" : "Save and continue"}
             </button>
-          </div>
-
-          {error ? (
-            <p
-              className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200"
-              role="alert"
-            >
-              {error}
-            </p>
-          ) : null}
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-xl bg-zinc-900 py-3.5 text-sm font-semibold text-white shadow-md transition hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-          >
-            {submitting ? "Saving…" : "Save and continue"}
-          </button>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );

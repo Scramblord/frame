@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 type NavbarClientProps = {
   fullName: string | null;
   initials: string | null;
+  avatarUrl: string | null;
   hasExpertProfile: boolean;
   signedIn: boolean;
 };
@@ -13,78 +15,223 @@ type NavbarClientProps = {
 export default function NavbarClient({
   fullName,
   initials,
+  avatarUrl,
   hasExpertProfile,
   signedIn,
 }: NavbarClientProps) {
   const pathname = usePathname() ?? "";
+  const router = useRouter();
   const isExpertMode =
     pathname === "/expert" || pathname.startsWith("/expert/");
-  const modeHomeHref = isExpertMode ? "/expert/dashboard" : "/dashboard";
+  const homeHref = isExpertMode ? "/expert/dashboard" : "/dashboard";
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const displayName = fullName?.trim() || "Account";
+
+  useEffect(() => {
+    const navbar = document.getElementById("frame-navbar");
+    if (!navbar) return;
+
+    navbar.setAttribute("data-expert-mode", isExpertMode ? "true" : "false");
+
+    const expertLinks = navbar.querySelectorAll<HTMLAnchorElement>("nav a[href^='/expert/']");
+    for (const link of expertLinks) {
+      const href = link.getAttribute("href") ?? "";
+      const active = pathname === href || pathname.startsWith(`${href}/`);
+      if (active) {
+        link.setAttribute("data-active", "true");
+      } else {
+        link.removeAttribute("data-active");
+      }
+    }
+  }, [isExpertMode, pathname]);
+
+  useEffect(() => {
+    const homeLink = document.getElementById("frame-navbar-home-link");
+    if (!(homeLink instanceof HTMLAnchorElement)) return;
+
+    function handleHomeClick(event: MouseEvent) {
+      event.preventDefault();
+      router.push(homeHref);
+    }
+
+    homeLink.addEventListener("click", handleHomeClick);
+    return () => {
+      homeLink.removeEventListener("click", handleHomeClick);
+    };
+  }, [homeHref, router]);
+
+  useEffect(() => {
+    function onPointerDown(event: MouseEvent) {
+      if (!menuRef.current) return;
+      const target = event.target;
+      if (target instanceof Node && !menuRef.current.contains(target)) {
+        setOpen(false);
+      }
+    }
+
+    function onEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onEscape);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onEscape);
+    };
+  }, []);
+
+  function closeMenu() {
+    setOpen(false);
+  }
+
+  const dropdownItemClass =
+    "flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 dark:focus-visible:ring-zinc-500/70 dark:focus-visible:ring-offset-zinc-900";
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+    <div className="flex items-center justify-end gap-2">
       {signedIn ? (
-        <>
-          {hasExpertProfile ? (
-            <div
-              className="flex rounded-lg border border-zinc-200 bg-zinc-100/80 p-0.5 dark:border-zinc-600 dark:bg-zinc-800/80"
-              role="group"
-              aria-label="Account mode"
-            >
-              <Link
-                href="/dashboard"
-                className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition sm:px-3 sm:text-sm ${
-                  !isExpertMode
-                    ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-950 dark:text-zinc-50"
-                    : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-                }`}
-              >
-                Consumer
-              </Link>
-              <Link
-                href="/expert/dashboard"
-                className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition sm:px-3 sm:text-sm ${
-                  isExpertMode
-                    ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-950 dark:text-zinc-50"
-                    : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-                }`}
-              >
-                Expert
-              </Link>
-            </div>
-          ) : (
-            <Link
-              href="/expert/setup"
-              className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-800 shadow-sm transition hover:border-zinc-300 hover:shadow dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-500"
-            >
-              Become an expert
-            </Link>
-          )}
-
-          <Link
-            href={modeHomeHref}
-            className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:border-zinc-300 hover:shadow dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-500"
+        <div className="relative" ref={menuRef}>
+          <button
+            type="button"
+            onClick={() => setOpen((prev) => !prev)}
+            aria-expanded={open}
+            aria-haspopup="menu"
+            className={`inline-flex h-10 items-center gap-2 rounded-xl border px-2.5 text-sm font-semibold shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-zinc-500/70 dark:focus-visible:ring-offset-zinc-950 sm:px-3 ${
+              isExpertMode
+                ? "border-zinc-700/80 bg-zinc-800/70 text-white hover:border-zinc-500 hover:bg-zinc-800"
+                : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-800"
+            }`}
           >
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-[10px] font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
-              {initials ?? "?"}
-            </span>
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt=""
+                className="h-7 w-7 rounded-full object-cover"
+                width={28}
+                height={28}
+              />
+            ) : (
+              <span
+                className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold ${
+                  isExpertMode
+                    ? "bg-white text-zinc-900"
+                    : "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                }`}
+              >
+                {initials ?? "?"}
+              </span>
+            )}
             <span className="hidden max-w-[10rem] truncate sm:inline">
-              {fullName ?? "Account"}
+              {displayName}
             </span>
-          </Link>
-          <form action="/auth/signout" method="post">
-            <button
-              type="submit"
-              className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-600 shadow-sm transition hover:border-zinc-300 hover:text-zinc-900 hover:shadow dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:text-zinc-50"
-            >
-              Sign out
-            </button>
-          </form>
-        </>
+          </button>
+
+          <div
+            className={`absolute right-0 z-40 mt-2 w-72 origin-top-right rounded-xl border border-zinc-200 bg-white p-2 shadow-lg ring-1 ring-zinc-900/5 transition duration-200 dark:border-zinc-700 dark:bg-zinc-900 dark:ring-zinc-100/10 ${
+              open
+                ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
+                : "pointer-events-none -translate-y-1 scale-95 opacity-0"
+            }`}
+            role="menu"
+            aria-hidden={!open}
+          >
+            <div className="flex items-center gap-3 rounded-lg px-2 py-2">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt=""
+                  className="h-10 w-10 rounded-full object-cover"
+                  width={40}
+                  height={40}
+                />
+              ) : (
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
+                  {initials ?? "?"}
+                </span>
+              )}
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  {displayName}
+                </p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  {isExpertMode ? "Expert Dashboard" : "Consumer Dashboard"}
+                </p>
+              </div>
+            </div>
+
+            <div className="my-2 h-px bg-zinc-200 dark:bg-zinc-700" />
+
+            {isExpertMode ? (
+              <>
+                <div className="md:hidden">
+                  <Link
+                    href="/expert/dashboard"
+                    onClick={closeMenu}
+                    className={`${dropdownItemClass} ${pathname === "/expert/dashboard" ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100" : ""}`}
+                  >
+                    Dashboard
+                  </Link>
+                  <Link
+                    href="/expert/bookings"
+                    onClick={closeMenu}
+                    className={`${dropdownItemClass} ${(pathname === "/expert/bookings" || pathname.startsWith("/expert/bookings/")) ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100" : ""}`}
+                  >
+                    Bookings
+                  </Link>
+                  <Link
+                    href="/expert/availability"
+                    onClick={closeMenu}
+                    className={`${dropdownItemClass} ${(pathname === "/expert/availability" || pathname.startsWith("/expert/availability/")) ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100" : ""}`}
+                  >
+                    Availability
+                  </Link>
+                  <Link
+                    href="/expert/setup"
+                    onClick={closeMenu}
+                    className={`${dropdownItemClass} ${(pathname === "/expert/setup" || pathname.startsWith("/expert/setup/")) ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100" : ""}`}
+                  >
+                    Setup
+                  </Link>
+                  <div className="my-2 h-px bg-zinc-200 dark:bg-zinc-700" />
+                </div>
+                <Link href="/dashboard" onClick={closeMenu} className={dropdownItemClass}>
+                  Switch to Consumer
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/bookings" onClick={closeMenu} className={dropdownItemClass}>
+                  My bookings
+                </Link>
+                {hasExpertProfile ? (
+                  <Link href="/expert/dashboard" onClick={closeMenu} className={dropdownItemClass}>
+                    Switch to Expert
+                  </Link>
+                ) : (
+                  <Link href="/expert/setup" onClick={closeMenu} className={dropdownItemClass}>
+                    Become an expert
+                  </Link>
+                )}
+              </>
+            )}
+
+            <div className="my-2 h-px bg-zinc-200 dark:bg-zinc-700" />
+
+            <form action="/auth/signout" method="post">
+              <button type="submit" onClick={closeMenu} className={dropdownItemClass}>
+                Sign out
+              </button>
+            </form>
+          </div>
+        </div>
       ) : (
         <Link
           href="/login"
-          className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-600 shadow-sm transition hover:border-zinc-300 hover:text-zinc-900 hover:shadow dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
+          className="inline-flex h-10 items-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 dark:focus-visible:ring-zinc-500/70 dark:focus-visible:ring-offset-zinc-950"
         >
           Sign in
         </Link>

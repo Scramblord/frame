@@ -1,8 +1,15 @@
 import { completeSession } from "@/lib/session-completion";
+import crypto from "crypto";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+/**
+ * Required env:
+ * - DAILY_WEBHOOK_SECRET: Daily webhook HMAC secret (base64-encoded key)
+ * - Production webhook URL: https://<your-production-domain>/api/daily/webhook
+ */
 
 function extractRoomName(body: unknown): string | null {
   if (!body || typeof body !== "object") return null;
@@ -35,10 +42,67 @@ function extractRoomName(body: unknown): string | null {
 }
 
 /**
- * Daily.co webhooks — verify with DAILY_WEBHOOK_SECRET when configured.
+ * Daily.co webhooks with signature verification.
  */
 export async function POST(request: Request) {
   const rawBody = await request.text();
+  const signatureHeader = request.headers.get("x-webhook-signature");
+
+  const secret = process.env.DAILY_WEBHOOK_SECRET?.trim() ?? "";
+  if (!secret) {
+    console.error("[frame:daily-webhook] verification failed", {
+      verification: "failed",
+      reason: "missing DAILY_WEBHOOK_SECRET",
+      eventType: "unknown",
+      bookingId: null,
+    });
+    return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
+  }
+
+  if (!signatureHeader) {
+    console.warn("[frame:daily-webhook] verification failed", {
+      verification: "failed",
+      reason: "missing x-webhook-signature header",
+      eventType: "unknown",
+      bookingId: null,
+    });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const normalizedSignature = signatureHeader.startsWith("sha256=")
+    ? signatureHeader.slice("sha256=".length)
+    : signatureHeader;
+
+  const key = Buffer.from(secret, "base64");
+  if (key.length === 0) {
+    console.error("[frame:daily-webhook] verification failed", {
+      verification: "failed",
+      reason: "invalid DAILY_WEBHOOK_SECRET",
+      eventType: "unknown",
+      bookingId: null,
+    });
+    return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
+  }
+
+  const expectedSignature = crypto
+    .createHmac("sha256", key)
+    .update(rawBody, "utf8")
+    .digest("base64");
+
+  const got = Buffer.from(normalizedSignature, "utf8");
+  const expected = Buffer.from(expectedSignature, "utf8");
+  const signatureValid =
+    got.length === expected.length && crypto.timingSafeEqual(got, expected);
+
+  if (!signatureValid) {
+    console.warn("[frame:daily-webhook] verification failed", {
+      verification: "failed",
+      reason: "signature mismatch",
+      eventType: "unknown",
+      bookingId: null,
+    });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   let payload: unknown;
   try {
@@ -49,6 +113,11 @@ export async function POST(request: Request) {
 
   const obj = payload as Record<string, unknown>;
   const eventType = String(obj.type ?? obj.event ?? "");
+  console.log("[frame:daily-webhook] verification passed", {
+    verification: "passed",
+    eventType,
+    bookingId: null,
+  });
 
   if (!eventType.toLowerCase().includes("meeting.ended")) {
     return NextResponse.json({ received: true });
@@ -63,6 +132,12 @@ export async function POST(request: Request) {
   if (!bookingId) {
     return NextResponse.json({ received: true });
   }
+
+  console.log("[frame:daily-webhook] processing completion event", {
+    verification: "passed",
+    eventType,
+    bookingId,
+  });
 
   const result = await completeSession({
     bookingId,

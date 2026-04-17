@@ -66,6 +66,11 @@ function extractRoomName(body: unknown): string | null {
  */
 export async function POST(request: Request) {
   const rawBody = await request.text();
+  console.log("[frame:daily-webhook] debug raw request", {
+    rawBody,
+    isDailyVerificationPing: isDailyVerificationPing(rawBody),
+    rawBodyLength: rawBody.length,
+  });
 
   if (isDailyVerificationPing(rawBody)) {
     return NextResponse.json({ received: true });

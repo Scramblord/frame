@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  console.log("[frame:daily-webhook-sync] request received");
   const secret = process.env.DAILY_WEBHOOK_SECRET?.trim() ?? "";
   if (!secret) {
     console.error("[frame:daily-webhook-sync] missing DAILY_WEBHOOK_SECRET");
@@ -39,6 +40,9 @@ export async function POST(request: Request) {
   }
 
   const endpoint = `${siteUrl.replace(/\/+$/, "")}/api/daily/webhook`;
+  console.log("[frame:daily-webhook-sync] ensuring webhook subscription", {
+    endpoint,
+  });
   const result = await ensureDailyWebhookSubscription({
     endpoint,
     secret,

@@ -239,6 +239,7 @@ async function listDailyWebhooks(
   apiKey: string,
 ): Promise<{ ok: true; webhooks: DailyWebhook[] } | { ok: false; error: string }> {
   try {
+    console.log("[frame:daily-webhook-sync] Daily API list webhooks start");
     const res = await fetch(`${DAILY_API_BASE}/webhooks`, {
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -251,6 +252,12 @@ async function listDailyWebhooks(
     } catch {
       data = null;
     }
+    console.log("[frame:daily-webhook-sync] Daily API list webhooks response", {
+      status: res.status,
+      ok: res.ok,
+      bodyRaw: raw,
+      bodyParsed: data,
+    });
     if (!res.ok) {
       const error =
         data && typeof data === "object" && "error" in data
@@ -273,6 +280,10 @@ async function createDailyWebhook(
   params: { endpoint: string; secret: string },
 ): Promise<{ ok: true; webhook: DailyWebhook } | { ok: false; error: string }> {
   try {
+    console.log("[frame:daily-webhook-sync] Daily API create webhook start", {
+      endpoint: params.endpoint,
+      eventTypes: ["meeting.ended"],
+    });
     const res = await fetch(`${DAILY_API_BASE}/webhooks`, {
       method: "POST",
       headers: {
@@ -285,7 +296,20 @@ async function createDailyWebhook(
         eventTypes: ["meeting.ended"],
       }),
     });
-    const data = (await res.json().catch(() => ({}))) as {
+    const raw = await res.text();
+    let data: unknown = null;
+    try {
+      data = raw ? (JSON.parse(raw) as unknown) : null;
+    } catch {
+      data = null;
+    }
+    console.log("[frame:daily-webhook-sync] Daily API create webhook response", {
+      status: res.status,
+      ok: res.ok,
+      bodyRaw: raw,
+      bodyParsed: data,
+    });
+    const parsed = (data ?? {}) as {
       uuid?: string;
       url?: string;
       hmac?: string;
@@ -295,19 +319,19 @@ async function createDailyWebhook(
     if (!res.ok) {
       return {
         ok: false,
-        error: data.error ?? `Daily create webhook failed (${res.status})`,
+        error: parsed.error ?? `Daily create webhook failed (${res.status})`,
       };
     }
-    if (!data.uuid || !data.url) {
+    if (!parsed.uuid || !parsed.url) {
       return { ok: false, error: "Daily webhook response missing uuid or url" };
     }
     return {
       ok: true,
       webhook: {
-        uuid: data.uuid,
-        url: data.url,
-        hmac: data.hmac,
-        eventTypes: data.eventTypes,
+        uuid: parsed.uuid,
+        url: parsed.url,
+        hmac: parsed.hmac,
+        eventTypes: parsed.eventTypes,
       },
     };
   } catch (e) {
@@ -321,6 +345,9 @@ async function deleteDailyWebhook(
   uuid: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
+    console.log("[frame:daily-webhook-sync] Daily API delete webhook start", {
+      webhookUuid: uuid,
+    });
     const res = await fetch(`${DAILY_API_BASE}/webhooks/${encodeURIComponent(uuid)}`, {
       method: "DELETE",
       headers: {
@@ -328,17 +355,28 @@ async function deleteDailyWebhook(
       },
     });
     if (!res.ok) {
+      const raw = await res.text();
       let data: { error?: string } = {};
       try {
-        data = (await res.json()) as { error?: string };
+        data = raw ? (JSON.parse(raw) as { error?: string }) : {};
       } catch {
         data = {};
       }
+      console.error("[frame:daily-webhook-sync] Daily API delete webhook failed", {
+        webhookUuid: uuid,
+        status: res.status,
+        bodyRaw: raw,
+        bodyParsed: data,
+      });
       return {
         ok: false,
         error: data.error ?? `Daily delete webhook failed (${res.status})`,
       };
     }
+    console.log("[frame:daily-webhook-sync] Daily API delete webhook success", {
+      webhookUuid: uuid,
+      status: res.status,
+    });
     return { ok: true };
   } catch (e) {
     console.error("deleteDailyWebhook", e);
@@ -350,6 +388,9 @@ export async function ensureDailyWebhookSubscription(params: {
   endpoint: string;
   secret: string;
 }): Promise<EnsureDailyWebhookSubscriptionResult> {
+  console.log("[frame:daily-webhook-sync] ensure subscription start", {
+    endpoint: params.endpoint,
+  });
   const apiKey = getApiKey();
   if (!apiKey) {
     return { ok: false, error: "DAILY_API_KEY is not configured" };
@@ -365,29 +406,73 @@ export async function ensureDailyWebhookSubscription(params: {
 
   const listed = await listDailyWebhooks(apiKey);
   if (!listed.ok) {
+    console.error("[frame:daily-webhook-sync] list webhooks failed", {
+      endpoint,
+      error: listed.error,
+    });
     return { ok: false, error: listed.error };
   }
+  console.log("[frame:daily-webhook-sync] list webhooks success", {
+    endpoint,
+    count: listed.webhooks.length,
+  });
 
   const existing = listed.webhooks.find((w) => w.url?.trim() === endpoint);
   if (existing) {
+    console.log("[frame:daily-webhook-sync] found existing endpoint webhook", {
+      endpoint,
+      webhookUuid: existing.uuid,
+    });
     const existingSecret = existing.hmac?.trim() ?? "";
     if (existingSecret && existingSecret === secret) {
+      console.log("[frame:daily-webhook-sync] existing webhook secret matches; no-op", {
+        endpoint,
+        webhookUuid: existing.uuid,
+      });
       return { ok: true, action: "no-op", webhook: existing };
     }
+    console.log("[frame:daily-webhook-sync] existing webhook secret mismatch; rotate webhook", {
+      endpoint,
+      webhookUuid: existing.uuid,
+    });
     const del = await deleteDailyWebhook(apiKey, existing.uuid);
     if (!del.ok) {
+      console.error("[frame:daily-webhook-sync] delete existing webhook failed", {
+        endpoint,
+        webhookUuid: existing.uuid,
+        error: del.error,
+      });
       return { ok: false, error: del.error };
     }
     const created = await createDailyWebhook(apiKey, { endpoint, secret });
     if (!created.ok) {
+      console.error("[frame:daily-webhook-sync] recreate webhook failed", {
+        endpoint,
+        error: created.error,
+      });
       return { ok: false, error: created.error };
     }
+    console.log("[frame:daily-webhook-sync] webhook rotated successfully", {
+      endpoint,
+      webhookUuid: created.webhook.uuid,
+    });
     return { ok: true, action: "updated", webhook: created.webhook };
   }
 
+  console.log("[frame:daily-webhook-sync] no existing endpoint webhook; creating", {
+    endpoint,
+  });
   const created = await createDailyWebhook(apiKey, { endpoint, secret });
   if (!created.ok) {
+    console.error("[frame:daily-webhook-sync] create webhook failed", {
+      endpoint,
+      error: created.error,
+    });
     return { ok: false, error: created.error };
   }
+  console.log("[frame:daily-webhook-sync] create webhook succeeded", {
+    endpoint,
+    webhookUuid: created.webhook.uuid,
+  });
   return { ok: true, action: "created", webhook: created.webhook };
 }

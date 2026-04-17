@@ -282,7 +282,7 @@ async function createDailyWebhook(
       body: JSON.stringify({
         url: params.endpoint,
         hmac: params.secret,
-        event_types: ["meeting.ended"],
+        eventTypes: ["meeting.ended"],
       }),
     });
     const data = (await res.json().catch(() => ({}))) as {

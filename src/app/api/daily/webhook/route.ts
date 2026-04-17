@@ -5,6 +5,26 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+function isDailyVerificationPing(rawBody: string): boolean {
+  const normalized = rawBody.replace(/\uFEFF/g, "").trim();
+  if (!normalized) return false;
+
+  // Fast-path: Daily verification probe payload is documented as {"test":true}.
+  if (/"test"\s*:\s*true/i.test(normalized)) return true;
+
+  try {
+    const parsed = JSON.parse(normalized) as Record<string, unknown>;
+    return (
+      parsed?.test === true ||
+      parsed?.test === "true" ||
+      parsed?.test === 1 ||
+      parsed?.type === "test"
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Required env:
  * - DAILY_WEBHOOK_SECRET: Daily webhook HMAC secret (base64-encoded key)
@@ -47,13 +67,8 @@ function extractRoomName(body: unknown): string | null {
 export async function POST(request: Request) {
   const rawBody = await request.text();
 
-  try {
-    const probe = JSON.parse(rawBody) as Record<string, unknown>;
-    if (probe?.test === true) {
-      return NextResponse.json({ received: true });
-    }
-  } catch {
-    // Continue into normal signature validation path.
+  if (isDailyVerificationPing(rawBody)) {
+    return NextResponse.json({ received: true });
   }
 
   const signatureHeader = request.headers.get("x-webhook-signature");

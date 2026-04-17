@@ -417,7 +417,40 @@ export async function ensureDailyWebhookSubscription(params: {
     count: listed.webhooks.length,
   });
 
+  const existingAny = listed.webhooks[0] ?? null;
   const existing = listed.webhooks.find((w) => w.url?.trim() === endpoint);
+  if (!existing && existingAny) {
+    console.log("[frame:daily-webhook-sync] found webhook with different endpoint; rotating", {
+      endpoint,
+      existingEndpoint: existingAny.url,
+      webhookUuid: existingAny.uuid,
+    });
+    const del = await deleteDailyWebhook(apiKey, existingAny.uuid);
+    if (!del.ok) {
+      console.error("[frame:daily-webhook-sync] delete different-endpoint webhook failed", {
+        endpoint,
+        existingEndpoint: existingAny.url,
+        webhookUuid: existingAny.uuid,
+        error: del.error,
+      });
+      return { ok: false, error: del.error };
+    }
+
+    const created = await createDailyWebhook(apiKey, { endpoint, secret });
+    if (!created.ok) {
+      console.error("[frame:daily-webhook-sync] create after different-endpoint delete failed", {
+        endpoint,
+        error: created.error,
+      });
+      return { ok: false, error: created.error };
+    }
+    console.log("[frame:daily-webhook-sync] rotated webhook to correct endpoint", {
+      endpoint,
+      webhookUuid: created.webhook.uuid,
+    });
+    return { ok: true, action: "updated", webhook: created.webhook };
+  }
+
   if (existing) {
     console.log("[frame:daily-webhook-sync] found existing endpoint webhook", {
       endpoint,

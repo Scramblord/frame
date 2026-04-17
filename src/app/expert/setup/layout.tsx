@@ -7,8 +7,10 @@ export default function ExpertSetupLayout({
 }) {
   return (
     <div className="flex min-h-full flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
-      <Navbar />
-      {children}
+      <div className="relative z-50">
+        <Navbar />
+      </div>
+      <div className="relative z-0">{children}</div>
     </div>
   );
 }

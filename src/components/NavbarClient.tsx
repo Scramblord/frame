@@ -131,7 +131,7 @@ export default function NavbarClient({
           </button>
 
           <div
-            className={`absolute right-0 z-40 mt-2 w-72 origin-top-right rounded-xl border border-zinc-200 bg-white p-2 shadow-lg ring-1 ring-zinc-900/5 transition duration-200 dark:border-zinc-700 dark:bg-zinc-900 dark:ring-zinc-100/10 ${
+            className={`absolute right-0 z-50 mt-2 w-72 origin-top-right rounded-xl border border-zinc-200 bg-white p-2 shadow-lg ring-1 ring-zinc-900/5 transition duration-200 dark:border-zinc-700 dark:bg-zinc-900 dark:ring-zinc-100/10 ${
               open
                 ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
                 : "pointer-events-none -translate-y-1 scale-95 opacity-0"
@@ -198,7 +198,11 @@ export default function NavbarClient({
                   </Link>
                   <div className="my-2 h-px bg-zinc-200 dark:bg-zinc-700" />
                 </div>
-                <Link href="/dashboard" onClick={closeMenu} className={dropdownItemClass}>
+                <Link
+                  href="/dashboard"
+                  onClick={closeMenu}
+                  className={`${dropdownItemClass} !text-zinc-900 dark:!text-zinc-100`}
+                >
                   Switch to Consumer
                 </Link>
               </>

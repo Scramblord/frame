@@ -45,19 +45,32 @@ export default async function ConsumerBookingsPage({ searchParams }: PageProps) 
   let cards: Awaited<ReturnType<typeof enrichBookingsForConsumerCards>> = [];
 
   if (tab === "upcoming") {
-    const { data: rows } = await supabase
-      .from("bookings")
-      .select(SELECT_FIELDS)
-      .eq("consumer_user_id", user.id)
-      .not("scheduled_at", "is", null)
-      .gte("scheduled_at", nowIso)
-      .in("status", ["confirmed", "pending_payment", "in_progress"])
-      .order("scheduled_at", { ascending: true });
+    const [{ data: scheduledRows }, { data: messagingRows }] = await Promise.all([
+      supabase
+        .from("bookings")
+        .select(SELECT_FIELDS)
+        .eq("consumer_user_id", user.id)
+        .not("scheduled_at", "is", null)
+        .gte("scheduled_at", nowIso)
+        .in("status", ["confirmed", "pending_payment", "in_progress"])
+        .order("scheduled_at", { ascending: true }),
+      supabase
+        .from("bookings")
+        .select(SELECT_FIELDS)
+        .eq("consumer_user_id", user.id)
+        .in("session_type", ["messaging", "urgent_messaging"])
+        .in("status", ["confirmed", "pending_payment", "in_progress"])
+        .order("created_at", { ascending: false }),
+    ]);
 
-    cards = await enrichBookingsForConsumerCards(
-      supabase,
-      (rows ?? []) as BookingListRow[],
-    );
+    const scheduled = (scheduledRows ?? []) as BookingListRow[];
+    const scheduledIds = new Set(scheduled.map((r) => r.id));
+    const messagingExtra = (messagingRows ?? []).filter(
+      (r) => !scheduledIds.has(r.id),
+    ) as BookingListRow[];
+    const rows = [...scheduled, ...messagingExtra];
+
+    cards = await enrichBookingsForConsumerCards(supabase, rows);
   } else {
     const { data: pastData } = await supabase
       .from("bookings")

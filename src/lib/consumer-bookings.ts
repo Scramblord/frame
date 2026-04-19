@@ -52,6 +52,13 @@ export async function enrichBookingsForConsumerCards(
       .slice(0, 2)
       .toUpperCase();
 
+    const openConversationHref =
+      (b.session_type === "messaging" ||
+        b.session_type === "urgent_messaging") &&
+      (b.status === "confirmed" || b.status === "in_progress")
+        ? `/messages/${b.id}`
+        : undefined;
+
     return {
       bookingId: b.id,
       expertName: name,
@@ -64,6 +71,7 @@ export async function enrichBookingsForConsumerCards(
       status: b.status,
       showLeaveReviewLink:
         b.status === "completed" && b.consumer_reviewed === false,
+      openConversationHref,
     };
   });
 }

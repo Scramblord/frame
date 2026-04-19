@@ -132,6 +132,11 @@ export default async function ExpertBookingDetailPage({ params }: PageProps) {
     booking.status === "cancelled" ||
     booking.status === "no_show";
 
+  const showMessagingConversation =
+    (booking.session_type === "messaging" ||
+      booking.session_type === "urgent_messaging") &&
+    (booking.status === "confirmed" || booking.status === "in_progress");
+
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-4 py-8 sm:px-6 sm:py-10">
       <Link
@@ -185,6 +190,17 @@ export default async function ExpertBookingDetailPage({ params }: PageProps) {
       <h1 className="mt-8 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
         Booking details
       </h1>
+
+      {showMessagingConversation ? (
+        <div className="mt-8">
+          <Link
+            href={`/messages/${booking.id}`}
+            className="flex w-full items-center justify-center rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          >
+            Open conversation
+          </Link>
+        </div>
+      ) : null}
 
       {!hideJoinSession || canCancel ? (
         <div className="mt-8 space-y-3 rounded-2xl border border-zinc-200/80 bg-white p-5 dark:border-zinc-700/80 dark:bg-zinc-900">

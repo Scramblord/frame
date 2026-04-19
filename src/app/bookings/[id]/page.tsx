@@ -125,6 +125,11 @@ export default async function BookingDetailPage({
     booking.status === "no_show";
   const showJoinSessionActions = booking.status === "confirmed";
 
+  const showMessagingConversation =
+    (booking.session_type === "messaging" ||
+      booking.session_type === "urgent_messaging") &&
+    (booking.status === "confirmed" || booking.status === "in_progress");
+
   const backHref = isConsumer ? "/bookings" : "/expert/bookings";
 
   return (
@@ -202,6 +207,17 @@ export default async function BookingDetailPage({
           Confirming payment… This usually takes a few seconds. Refresh if the
           status doesn&apos;t update.
         </p>
+      ) : null}
+
+      {showMessagingConversation ? (
+        <div className="mt-8">
+          <Link
+            href={`/messages/${booking.id}`}
+            className="flex w-full items-center justify-center rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          >
+            Open conversation
+          </Link>
+        </div>
       ) : null}
 
       {isConsumer ? (

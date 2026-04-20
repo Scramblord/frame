@@ -19,6 +19,7 @@ export type ThreadMessage = {
 export type ThreadMeta = {
   messaging_message_count: number;
   messaging_closed_at: string | null;
+  messaging_closure_requested_at: string | null;
   messaging_sla_deadline: string | null;
   messaging_first_reply_at: string | null;
 };
@@ -86,6 +87,9 @@ export function MessagingThreadClient({
   const [sendError, setSendError] = useState<string | null>(null);
   const [sendLoading, setSendLoading] = useState(false);
   const [closeLoading, setCloseLoading] = useState(false);
+  const [consumerConfirmLoading, setConsumerConfirmLoading] = useState<
+    "yes" | "no" | null
+  >(null);
   const [closeError, setCloseError] = useState<string | null>(null);
   const [nowTick, setNowTick] = useState(() => Date.now());
 
@@ -96,6 +100,7 @@ export function MessagingThreadClient({
     bookingStatus === "cancelled" ||
     bookingStatus === "no_show";
   const atCap = messageCount >= MESSAGE_CAP;
+  const closureRequested = meta.messaging_closure_requested_at != null;
   const baseOpen =
     !isClosed &&
     !atCap &&
@@ -112,6 +117,17 @@ export function MessagingThreadClient({
   const showExpertResolve =
     role === "expert" &&
     baseOpen &&
+    !closureRequested &&
+    (bookingStatus === "confirmed" || bookingStatus === "in_progress");
+  const showExpertAwaitingConfirmation =
+    role === "expert" &&
+    baseOpen &&
+    closureRequested &&
+    (bookingStatus === "confirmed" || bookingStatus === "in_progress");
+  const showConsumerClosureBanner =
+    role === "consumer" &&
+    baseOpen &&
+    closureRequested &&
     (bookingStatus === "confirmed" || bookingStatus === "in_progress");
 
   const slaDeadlineMs = meta.messaging_sla_deadline
@@ -237,15 +253,44 @@ export function MessagingThreadClient({
       });
       const json = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
-        setCloseError(json.error ?? "Could not close thread");
+        setCloseError(json.error ?? "Could not request closure");
         return;
       }
       await refreshThread();
       router.refresh();
     } catch {
-      setCloseError("Could not close thread");
+      setCloseError("Could not request closure");
     } finally {
       setCloseLoading(false);
+    }
+  };
+
+  const handleConfirmClose = async (confirm: boolean) => {
+    setCloseError(null);
+    setConsumerConfirmLoading(confirm ? "yes" : "no");
+    try {
+      const res = await fetch("/api/messages/confirm-close", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId, confirm }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        setCloseError(json.error ?? "Could not update closure request");
+        return;
+      }
+      if (!confirm) {
+        setMeta((prev) => ({
+          ...prev,
+          messaging_closure_requested_at: null,
+        }));
+      }
+      await refreshThread();
+      router.refresh();
+    } catch {
+      setCloseError("Could not update closure request");
+    } finally {
+      setConsumerConfirmLoading(null);
     }
   };
 
@@ -372,6 +417,45 @@ export function MessagingThreadClient({
         )}
       </div>
 
+      {showConsumerClosureBanner ? (
+        <div
+          className="mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
+          role="status"
+        >
+          <p>
+            Your expert has marked this conversation as resolved. Are you
+            satisfied with the response?
+          </p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => void handleConfirmClose(true)}
+              disabled={consumerConfirmLoading != null}
+              className="rounded-xl bg-amber-700 px-3 py-2 text-sm font-semibold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-amber-500 dark:text-zinc-950 dark:hover:bg-amber-400"
+            >
+              {consumerConfirmLoading === "yes"
+                ? "Closing…"
+                : "Yes, close thread"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleConfirmClose(false)}
+              disabled={consumerConfirmLoading != null}
+              className="rounded-xl border border-amber-400 bg-amber-100 px-3 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-60 dark:border-amber-600 dark:bg-transparent dark:text-amber-100 dark:hover:bg-amber-900/40"
+            >
+              {consumerConfirmLoading === "no"
+                ? "Updating…"
+                : "I still have questions"}
+            </button>
+          </div>
+          {closeError ? (
+            <p className="mt-2 text-sm text-rose-700 dark:text-rose-300">
+              {closeError}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       {canCompose ? (
         <div className="mt-4 space-y-2">
           <div className="flex gap-2">
@@ -426,13 +510,28 @@ export function MessagingThreadClient({
             disabled={closeLoading}
             className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
           >
-            {closeLoading ? "Closing…" : "Mark as resolved"}
+            {closeLoading ? "Requesting…" : "Mark as resolved"}
           </button>
           {closeError ? (
             <p className="mt-2 text-center text-sm text-rose-600 dark:text-rose-400">
               {closeError}
             </p>
           ) : null}
+        </div>
+      ) : null}
+
+      {showExpertAwaitingConfirmation ? (
+        <div className="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+          <button
+            type="button"
+            disabled
+            className="w-full cursor-not-allowed rounded-xl border border-zinc-200 bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-500 opacity-90 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+          >
+            Awaiting client confirmation
+          </button>
+          <p className="mt-2 text-center text-xs text-zinc-500 dark:text-zinc-400">
+            We&apos;ve asked your client to confirm the conversation is resolved
+          </p>
         </div>
       ) : null}
     </main>

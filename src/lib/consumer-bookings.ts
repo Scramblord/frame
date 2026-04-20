@@ -55,7 +55,9 @@ export async function enrichBookingsForConsumerCards(
     const openConversationHref =
       (b.session_type === "messaging" ||
         b.session_type === "urgent_messaging") &&
-      (b.status === "confirmed" || b.status === "in_progress")
+      (b.status === "confirmed" ||
+        b.status === "in_progress" ||
+        b.status === "completed")
         ? `/messages/${b.id}`
         : undefined;
 

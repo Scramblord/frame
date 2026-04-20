@@ -22,7 +22,7 @@ export default async function MessagingPage({ params }: PageProps) {
   const { data: booking, error: bErr } = await supabase
     .from("bookings")
     .select(
-      "id, consumer_user_id, expert_user_id, service_id, session_type, status, messaging_message_count, messaging_closed_at, messaging_sla_deadline, messaging_first_reply_at",
+      "id, consumer_user_id, expert_user_id, service_id, session_type, status, messaging_message_count, messaging_closed_at, messaging_closure_requested_at, messaging_sla_deadline, messaging_first_reply_at",
     )
     .eq("id", bookingId)
     .maybeSingle();
@@ -111,6 +111,7 @@ export default async function MessagingPage({ params }: PageProps) {
         initialMeta={{
           messaging_message_count: booking.messaging_message_count ?? 0,
           messaging_closed_at: booking.messaging_closed_at,
+          messaging_closure_requested_at: booking.messaging_closure_requested_at,
           messaging_sla_deadline: booking.messaging_sla_deadline,
           messaging_first_reply_at: booking.messaging_first_reply_at,
         }}

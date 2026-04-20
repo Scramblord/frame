@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   const { data: booking, error: bookingErr } = await supabase
     .from("bookings")
     .select(
-      "id, consumer_user_id, expert_user_id, messaging_message_count, messaging_closed_at, messaging_sla_deadline, messaging_first_reply_at",
+      "id, consumer_user_id, expert_user_id, messaging_message_count, messaging_closed_at, messaging_closure_requested_at, messaging_sla_deadline, messaging_first_reply_at",
     )
     .eq("id", bookingId)
     .maybeSingle();
@@ -55,6 +55,7 @@ export async function GET(request: Request) {
     booking: {
       messaging_message_count: booking.messaging_message_count,
       messaging_closed_at: booking.messaging_closed_at,
+      messaging_closure_requested_at: booking.messaging_closure_requested_at,
       messaging_sla_deadline: booking.messaging_sla_deadline,
       messaging_first_reply_at: booking.messaging_first_reply_at,
     },

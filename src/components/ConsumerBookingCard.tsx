@@ -20,7 +20,7 @@ export type ConsumerBookingCardProps = {
   durationMinutes: number | null;
   status: string;
   showLeaveReviewLink?: boolean;
-  /** Messaging / urgent_messaging: link to thread when conversation is active */
+  /** Messaging / urgent_messaging: link to thread when conversation is available */
   openConversationHref?: string;
 };
 
@@ -109,7 +109,7 @@ export function ConsumerBookingCard({
             href={openConversationHref}
             className="flex w-full items-center justify-center rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
-            Open conversation
+            {status === "completed" ? "View conversation" : "Open conversation"}
           </Link>
         </div>
       </div>

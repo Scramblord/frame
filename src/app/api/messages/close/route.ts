@@ -1,4 +1,3 @@
-import { completeMessagingSession } from "@/lib/messaging-completion";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -35,7 +34,7 @@ export async function POST(request: Request) {
   const { data: booking, error: bookingErr } = await supabase
     .from("bookings")
     .select(
-      "id, expert_user_id, session_type, messaging_closed_at, status",
+      "id, expert_user_id, session_type, messaging_closed_at, messaging_closure_requested_at, status",
     )
     .eq("id", bookingId)
     .maybeSingle();
@@ -65,28 +64,45 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await completeMessagingSession({
-    bookingId,
-    expertUserId: user.id,
-  });
-
-  if (!result.ok) {
-    if (result.error === "Thread already closed") {
-      return NextResponse.json(
-        { error: "Thread is already closed" },
-        { status: 400 },
-      );
-    }
-    if (result.error === "Forbidden") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-    if (result.error === "Booking not found") {
-      return NextResponse.json({ error: "Booking not found" }, { status: 404 });
-    }
-    const status =
-      result.error === "Booking is not eligible for completion" ? 400 : 500;
-    return NextResponse.json({ error: result.error }, { status });
+  if (booking.status !== "confirmed" && booking.status !== "in_progress") {
+    return NextResponse.json(
+      { error: "Booking is not eligible for closure request" },
+      { status: 400 },
+    );
   }
 
-  return NextResponse.json({ ok: true });
+  if (booking.messaging_closure_requested_at != null) {
+    return NextResponse.json(
+      { ok: true, status: "closure_requested" },
+      { status: 200 },
+    );
+  }
+
+  const { data: updated, error: updErr } = await supabase
+    .from("bookings")
+    .update({
+      messaging_closure_requested_at: new Date().toISOString(),
+    })
+    .eq("id", bookingId)
+    .eq("expert_user_id", user.id)
+    .is("messaging_closed_at", null)
+    .in("status", ["confirmed", "in_progress"])
+    .select("id")
+    .maybeSingle();
+
+  if (updErr) {
+    return NextResponse.json(
+      { error: "Could not request closure" },
+      { status: 500 },
+    );
+  }
+
+  if (!updated) {
+    return NextResponse.json(
+      { error: "Could not request closure" },
+      { status: 400 },
+    );
+  }
+
+  return NextResponse.json({ ok: true, status: "closure_requested" });
 }

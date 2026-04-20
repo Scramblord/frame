@@ -128,7 +128,9 @@ export default async function BookingDetailPage({
   const showMessagingConversation =
     (booking.session_type === "messaging" ||
       booking.session_type === "urgent_messaging") &&
-    (booking.status === "confirmed" || booking.status === "in_progress");
+    (booking.status === "confirmed" ||
+      booking.status === "in_progress" ||
+      booking.status === "completed");
 
   const backHref = isConsumer ? "/bookings" : "/expert/bookings";
 
@@ -215,7 +217,9 @@ export default async function BookingDetailPage({
             href={`/messages/${booking.id}`}
             className="flex w-full items-center justify-center rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
-            Open conversation
+            {booking.status === "completed"
+              ? "View conversation"
+              : "Open conversation"}
           </Link>
         </div>
       ) : null}

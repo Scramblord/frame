@@ -4,13 +4,12 @@ import type { SessionCompletionResult } from "@/lib/session-completion";
 const TRANSFER_DELAY_MS = 20 * 60 * 1000;
 
 /**
- * Completes a messaging booking after the thread is closed by the expert:
- * closed metadata, completed status, 20-minute payout delay (same pattern as
- * `completeSession` in session-completion.ts, without scheduled_at / duration checks).
+ * Completes a messaging booking after closure is confirmed:
+ * closed metadata, completed status, and 20-minute payout delay
+ * (same pattern as `completeSession`, without scheduled_at/duration checks).
  */
 export async function completeMessagingSession(params: {
   bookingId: string;
-  expertUserId: string;
 }): Promise<SessionCompletionResult> {
   const admin = createServiceRoleClient();
 
@@ -24,10 +23,6 @@ export async function completeMessagingSession(params: {
 
   if (fetchErr || !booking) {
     return { ok: false, error: "Booking not found" };
-  }
-
-  if (booking.expert_user_id !== params.expertUserId) {
-    return { ok: false, error: "Forbidden" };
   }
 
   if (
@@ -68,13 +63,13 @@ export async function completeMessagingSession(params: {
     .update({
       messaging_closed_at: closedAt,
       messaging_closed_by: "expert",
+      messaging_closure_requested_at: null,
       status: "completed",
       completed_at: completedAt,
       transfer_after: transferAfter,
       stripe_transfer_status: stripeTransferStatus,
     })
     .eq("id", params.bookingId)
-    .eq("expert_user_id", params.expertUserId)
     .is("messaging_closed_at", null)
     .in("status", ["confirmed", "in_progress"])
     .select("id");

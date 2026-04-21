@@ -181,7 +181,7 @@ export default function NavbarClient({
               isExpertMode ? segmentActive : segmentInactive
             }`}
           >
-            Expert
+            Sensei
           </button>
         </div>
       ) : null}
@@ -251,7 +251,7 @@ export default function NavbarClient({
                   {displayName}
                 </p>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {isExpertMode ? "Expert Dashboard" : "Consumer Dashboard"}
+                  {isExpertMode ? "Sensei Dashboard" : ""}
                 </p>
               </div>
             </div>
@@ -299,7 +299,7 @@ export default function NavbarClient({
                 </Link>
                 {!hasExpertProfile ? (
                   <Link href="/expert/setup" onClick={closeMenu} className={dropdownItemClass}>
-                    Become an expert
+                    Become a Sensei
                   </Link>
                 ) : null}
               </>

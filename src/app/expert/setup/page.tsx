@@ -374,7 +374,7 @@ export default function ExpertSetupPage() {
         <div className="relative mx-auto w-full max-w-2xl">
           <div className="mb-8 text-center">
             <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-              Expert profile setup
+              Sensei profile setup
             </p>
           </div>
         </div>

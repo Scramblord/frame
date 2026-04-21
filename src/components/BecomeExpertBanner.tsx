@@ -47,14 +47,14 @@ export default function BecomeExpertBanner({
     <div className="border-b border-zinc-200/80 bg-zinc-50/90 dark:border-zinc-800 dark:bg-zinc-900/70">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-4 py-2.5 sm:px-6">
         <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
-          Share your expertise on FRAME.
+          Share your expertise on Sensei.
         </p>
         <div className="flex items-center gap-2">
           <Link
             href="/expert/setup"
             className="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-300 bg-white px-3 text-sm font-semibold text-zinc-900 transition hover:border-zinc-400 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/60 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-500 dark:hover:bg-zinc-800 dark:focus-visible:ring-zinc-500/70"
           >
-            Become an expert
+            Become a Sensei
           </Link>
           <button
             type="button"

@@ -67,7 +67,7 @@ export default async function DashboardPage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              Hey {displayName} — discover experts and manage your bookings.
+              Hey {displayName} — discover Senseis and manage your bookings.
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
               Find your next session
@@ -105,7 +105,7 @@ export default async function DashboardPage() {
         <section className="mt-12">
           <div className="flex flex-wrap items-end justify-between gap-2">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-              Featured experts
+              Featured Senseis
             </h2>
             <Link
               href="/search"
@@ -115,13 +115,13 @@ export default async function DashboardPage() {
             </Link>
           </div>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Coaches and clinicians on FRAME right now.
+            Coaches and clinicians on Sensei right now.
           </p>
 
           {featuredExperts.length === 0 ? (
             <div className="mt-6 rounded-2xl border border-dashed border-zinc-300 bg-white/80 px-6 py-12 text-center dark:border-zinc-600 dark:bg-zinc-900/60">
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                No experts listed yet. Check back soon.
+                No Senseis listed yet. Check back soon.
               </p>
             </div>
           ) : (
@@ -129,7 +129,7 @@ export default async function DashboardPage() {
               {featuredExperts.map((ep) => {
                 const p = ep.profile;
                 if (!p?.id) return null;
-                const name = p.full_name?.trim() || "Expert";
+                const name = p.full_name?.trim() || "Sensei";
                 const initials = name
                   .split(/\s+/)
                   .map((w: string) => w[0])
@@ -199,7 +199,7 @@ export default async function DashboardPage() {
           {upcomingCards.length === 0 ? (
             <div className="mt-4 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-8 text-center dark:border-zinc-700 dark:bg-zinc-800/40">
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                No upcoming sessions. Find an expert to get started.
+                No upcoming sessions. Find a Sensei to get started.
               </p>
               <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
                 <Link
@@ -212,7 +212,7 @@ export default async function DashboardPage() {
                   href="/search"
                   className="inline-flex rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
                 >
-                  Search experts
+                  Search Senseis
                 </Link>
               </div>
             </div>

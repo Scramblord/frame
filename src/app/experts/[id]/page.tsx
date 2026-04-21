@@ -54,15 +54,15 @@ type PageProps = { params: Promise<{ id: string }> };
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
   if (!isPublicExpertUuid(id)) {
-    return { title: "Expert — FRAME" };
+    return { title: "Sensei — Sensei" };
   }
   const { profile } = await loadPublicExpertPageData(id);
   const name = profile?.full_name;
   return {
-    title: name ? `${name} — FRAME` : "Expert — FRAME",
+    title: name ? `${name} — Sensei` : "Sensei — Sensei",
     description: name
-      ? `Book a session with ${name} on FRAME.`
-      : "Expert profile on FRAME.",
+      ? `Book a session with ${name} on Sensei.`
+      : "Sensei profile on Sensei.",
   };
 }
 
@@ -164,7 +164,7 @@ export default async function ExpertPublicPage({ params }: PageProps) {
         )
       : null;
 
-  const displayName = profile.full_name?.trim() || "Expert";
+  const displayName = profile.full_name?.trim() || "Sensei";
   const initials = displayName
     .split(/\s+/)
     .map((w: string) => w[0])
@@ -247,8 +247,8 @@ export default async function ExpertPublicPage({ params }: PageProps) {
           <div className="space-y-10 px-6 py-8 sm:px-10 sm:py-10">
             {!expert ? (
               <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-100">
-                This expert has not published their full marketplace profile yet.
-                Booking options and details will appear after they complete expert
+                This Sensei has not published their full marketplace profile yet.
+                Booking options and details will appear after they complete Sensei
                 setup.
               </div>
             ) : null}
@@ -316,7 +316,7 @@ export default async function ExpertPublicPage({ params }: PageProps) {
                 </p>
               ) : services.length === 0 ? (
                 <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                  This expert has not published any services yet.
+                  This Sensei has not published any services yet.
                 </p>
               ) : (
                 <ul className="mt-4 space-y-8">

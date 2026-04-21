@@ -79,7 +79,7 @@ function LoginContent() {
               />
             </div>
             <h1 className="font-mono text-4xl font-bold tracking-[0.35em] text-zinc-900 dark:text-zinc-50 sm:text-5xl">
-              FRAME
+              Sensei
             </h1>
             <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
               Sign in to continue
@@ -107,7 +107,7 @@ function LoginContent() {
           </button>
 
           <p className="mt-8 text-center text-xs leading-relaxed text-zinc-400 dark:text-zinc-500">
-            By continuing, you agree to FRAME&apos;s use of authentication
+            By continuing, you agree to Sensei&apos;s use of authentication
             services provided by Google and Supabase.
           </p>
         </div>

@@ -11,8 +11,8 @@ import {
 } from "@/lib/experts-marketplace";
 
 export const metadata: Metadata = {
-  title: "Find experts — FRAME",
-  description: "Search FRAME experts by topic and speciality.",
+  title: "Find Senseis — Sensei",
+  description: "Search Sensei guides by topic and speciality.",
 };
 
 export const dynamic = "force-dynamic";
@@ -34,7 +34,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Find an expert
+          Find a Sensei
         </h1>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
           Search by topic, skill, or speciality.
@@ -65,12 +65,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         {experts.length === 0 ? (
           <div className="mt-16 rounded-2xl border border-dashed border-zinc-300 bg-white/80 px-8 py-14 text-center dark:border-zinc-600 dark:bg-zinc-900/80">
             <p className="text-lg font-medium text-zinc-800 dark:text-zinc-100">
-              No experts match that search
+              No Senseis match that search
             </p>
             <p className="mx-auto mt-2 max-w-md text-sm text-zinc-500 dark:text-zinc-400">
               {trimmed
                 ? "Try different words, fewer terms, or browse with an empty search to see everyone."
-                : "No expert profiles are available yet. Check back soon."}
+                : "No Sensei profiles are available yet. Check back soon."}
             </p>
             {trimmed ? (
               <Link
@@ -86,7 +86,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             {experts.map((ep) => {
               const profile = ep.profile;
               if (!profile?.id) return null;
-              const name = profile.full_name?.trim() || "Expert";
+              const name = profile.full_name?.trim() || "Sensei";
               const initials = name
                 .split(/\s+/)
                 .map((w: string) => w[0])

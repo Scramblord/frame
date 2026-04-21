@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FRAME",
-  description: "FRAME",
+  title: "Sensei",
+  description: "Sensei",
 };
 
 export default function RootLayout({

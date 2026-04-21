@@ -105,7 +105,7 @@ export default function OnboardingPage() {
               />
             </div>
             <h1 className="font-mono text-4xl font-bold tracking-[0.35em] text-zinc-900 dark:text-zinc-50 sm:text-5xl">
-              FRAME
+              Sensei
             </h1>
             <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
               Welcome — tell us your name to get started

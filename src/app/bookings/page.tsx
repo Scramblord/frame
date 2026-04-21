@@ -156,7 +156,7 @@ export default async function ConsumerBookingsPage({ searchParams }: PageProps) 
               href="/search"
               className="mt-4 inline-flex rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
             >
-              Find an expert
+              Find a Sensei
             </Link>
           ) : null}
         </div>

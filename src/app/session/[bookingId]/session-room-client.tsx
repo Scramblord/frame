@@ -336,7 +336,7 @@ export function SessionRoomClient({ bookingId, exitHref }: Props) {
           href="/dashboard"
           className="text-sm font-semibold tracking-tight text-white"
         >
-          FRAME
+          Sensei
         </Link>
         <div className={`font-mono text-lg tabular-nums ${timerColor}`}>
           {loading ? "—:—" : timeLabel}

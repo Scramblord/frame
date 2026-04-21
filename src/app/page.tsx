@@ -4,9 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "FRAME — Book experts for live sessions",
+  title: "Sensei — Book Senseis for live sessions",
   description:
-    "Book live video, audio, or messaging sessions with experts. Brazilian jiu-jitsu, grappling, physiotherapy, strength & conditioning, and more.",
+    "Book live video, audio, or messaging sessions with Senseis. Brazilian jiu-jitsu, grappling, physiotherapy, strength & conditioning, and more.",
 };
 
 export const dynamic = "force-dynamic";
@@ -60,7 +60,7 @@ export default async function Home() {
                 height={32}
               />
               <span className="font-mono text-lg font-bold tracking-[0.35em] sm:text-xl">
-                FRAME
+                Sensei
               </span>
             </Link>
             <Link
@@ -86,10 +86,10 @@ export default async function Home() {
             height={96}
           />
           <h1 className="mt-6 text-balance text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50">
-            Book video, audio, or messaging sessions with experts
+            Book video, audio, or messaging sessions with Senseis
           </h1>
           <p className="mt-4 text-pretty text-lg leading-relaxed text-zinc-600 dark:text-zinc-400">
-            FRAME connects you with coaches and clinicians for one-to-one
+            Sensei connects you with coaches and clinicians for one-to-one
             sessions — pick the format that fits, book a slot, and get guidance
             when you need it.
           </p>
@@ -115,7 +115,7 @@ export default async function Home() {
             Launch focus
           </h2>
           <p className="mt-3 text-center text-zinc-700 dark:text-zinc-300">
-            We&apos;re opening with experts in{" "}
+            We&apos;re opening with Senseis in{" "}
             <span className="font-medium text-zinc-900 dark:text-zinc-100">
               Brazilian jiu-jitsu
             </span>
@@ -137,7 +137,7 @@ export default async function Home() {
 
         <section className="mx-auto mt-10 max-w-2xl text-center">
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Experts set their own rates and availability. Browse by keyword,
+            Senseis set their own rates and availability. Browse by keyword,
             compare formats, and book in a few clicks.
           </p>
         </section>

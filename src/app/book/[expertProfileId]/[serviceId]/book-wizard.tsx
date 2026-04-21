@@ -819,7 +819,7 @@ export function BookWizard({
                 </dd>
               </div>
               <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                FRAME fee ({Math.round(PLATFORM_FEE_RATE * 100)}%):{" "}
+                Sensei fee ({Math.round(PLATFORM_FEE_RATE * 100)}%):{" "}
                 {platformFee != null ? formatGbp(platformFee) : "—"} — included
                 in total; the expert receives the remainder after card
                 processing.

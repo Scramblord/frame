@@ -35,7 +35,7 @@ export function ExpertConnectClient() {
       .maybeSingle();
 
     if (exErr) {
-      setError("Could not load your expert profile.");
+      setError("Could not load your Sensei profile.");
       setLoading(false);
       return;
     }
@@ -94,14 +94,14 @@ export function ExpertConnectClient() {
           href="/expert/dashboard"
           className="text-sm font-medium text-zinc-600 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
         >
-          ← Back to expert dashboard
+          ← Back to Sensei dashboard
         </Link>
 
         <h1 className="mt-6 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
           Payouts &amp; bank account
         </h1>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          Connect Stripe so FRAME can pay you when sessions are completed.
+          Connect Stripe so Sensei can pay you when sessions are completed.
         </p>
 
         {queryError === "no_account" ? (
@@ -158,10 +158,10 @@ export function ExpertConnectClient() {
           ) : (
             <>
               <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-                FRAME uses Stripe Connect to send your earnings directly to your
+                Sensei uses Stripe Connect to send your earnings directly to your
                 bank. You&apos;ll complete a short Stripe-hosted flow to verify
                 your identity and link a payout account. We don&apos;t store
-                your bank details on FRAME.
+                your bank details on Sensei.
               </p>
               <p className="mt-4 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
                 You need to connect before you can receive payouts from

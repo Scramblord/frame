@@ -345,7 +345,7 @@ export function MessagingThreadClient({
           className="mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
           role="status"
         >
-          Expert has not responded within the guaranteed window. FRAME support may
+          Sensei has not responded within the guaranteed window. Sensei support may
           follow up according to your booking terms.
         </div>
       ) : null}

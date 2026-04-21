@@ -2,22 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-
-const MODE_PREF_KEY = "frame_mode_preference";
-
-type ModePref = "consumer" | "expert";
-
-function readModePref(): ModePref | null {
-  if (typeof window === "undefined") return null;
-  const v = localStorage.getItem(MODE_PREF_KEY);
-  if (v === "consumer" || v === "expert") return v;
-  return null;
-}
-
-function writeModePref(mode: ModePref) {
-  localStorage.setItem(MODE_PREF_KEY, mode);
-}
+import { useEffect, useRef, useState } from "react";
 
 type NavbarClientProps = {
   fullName: string | null;
@@ -42,35 +27,6 @@ export default function NavbarClient({
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const displayName = fullName?.trim() || "Account";
-
-  /** Apply preference-based routing once paths are known (client-only). Avoids SSR/localStorage mismatch; pathname-driven mode stays consistent after navigation. */
-  useLayoutEffect(() => {
-    if (!signedIn || !hasExpertProfile) return;
-
-    const pref = readModePref();
-    const onDashboard = pathname === "/dashboard";
-    const onExpert =
-      pathname === "/expert" || pathname.startsWith("/expert/");
-    const onExpertSetup = pathname.startsWith("/expert/setup");
-    const onMessages = pathname === "/messages" || pathname.startsWith("/messages/");
-
-    if (onMessages) return;
-
-    if (pref === "expert" && onDashboard) {
-      router.replace("/expert/dashboard");
-      return;
-    }
-
-    if (pref === "consumer" && onExpert && !onExpertSetup) {
-      router.replace("/dashboard");
-      return;
-    }
-
-    if (pref === null && onDashboard) {
-      writeModePref("expert");
-      router.replace("/expert/dashboard");
-    }
-  }, [signedIn, hasExpertProfile, pathname, router]);
 
   useEffect(() => {
     const navbar = document.getElementById("frame-navbar");
@@ -132,60 +88,11 @@ export default function NavbarClient({
     setOpen(false);
   }
 
-  function goConsumerMode() {
-    writeModePref("consumer");
-    router.push("/dashboard");
-  }
-
-  function goExpertMode() {
-    writeModePref("expert");
-    router.push("/expert/dashboard");
-  }
-
   const dropdownItemClass =
     "flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 dark:focus-visible:ring-zinc-500/70 dark:focus-visible:ring-offset-zinc-900";
 
-  const pillWrapClass = isExpertMode
-    ? "inline-flex rounded-md border border-zinc-600/90 bg-zinc-800/80 p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
-    : "inline-flex rounded-md border border-zinc-300/90 bg-zinc-100/90 p-0.5 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)] dark:border-zinc-600 dark:bg-zinc-800/80 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]";
-
-  const segmentInactive = isExpertMode
-    ? "text-zinc-400 hover:text-zinc-200"
-    : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-100";
-
-  const segmentActive = isExpertMode
-    ? "bg-zinc-700 text-white shadow-[0_1px_2px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.12)]"
-    : "bg-white text-zinc-900 shadow-[0_1px_2px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.9)] dark:bg-zinc-700 dark:text-zinc-50 dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.08)]";
-
   return (
     <div className="flex items-center justify-end gap-2">
-      {signedIn && hasExpertProfile ? (
-        <div
-          className={pillWrapClass}
-          role="group"
-          aria-label="Account mode"
-        >
-          <button
-            type="button"
-            onClick={() => goConsumerMode()}
-            className={`rounded-[5px] px-2.5 py-1.5 text-xs font-semibold transition sm:px-3 ${
-              !isExpertMode ? segmentActive : segmentInactive
-            }`}
-          >
-            Consumer
-          </button>
-          <button
-            type="button"
-            onClick={() => goExpertMode()}
-            className={`rounded-[5px] px-2.5 py-1.5 text-xs font-semibold transition sm:px-3 ${
-              isExpertMode ? segmentActive : segmentInactive
-            }`}
-          >
-            Sensei
-          </button>
-        </div>
-      ) : null}
-
       {signedIn ? (
         <div className="relative" ref={menuRef}>
           <button

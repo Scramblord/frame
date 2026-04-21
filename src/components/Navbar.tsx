@@ -3,6 +3,7 @@ import Link from "next/link";
 import NavbarCenter from "@/components/NavbarCenter";
 import NavbarClient from "@/components/NavbarClient";
 import BecomeExpertBanner from "@/components/BecomeExpertBanner";
+import SenseiModeToggle from "@/components/SenseiModeToggle";
 
 export default async function Navbar() {
   const supabase = await createClient();
@@ -10,13 +11,18 @@ export default async function Navbar() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  let profile: { id: string; full_name: string | null; avatar_url: string | null } | null = null;
+  let profile: {
+    id: string;
+    full_name: string | null;
+    avatar_url: string | null;
+    sensei_mode: boolean | null;
+  } | null = null;
   let hasExpertProfile = false;
 
   if (user) {
     const { data: p } = await supabase
       .from("profiles")
-      .select("id, full_name, avatar_url")
+      .select("id, full_name, avatar_url, sensei_mode")
       .eq("user_id", user.id)
       .maybeSingle();
     profile = p;
@@ -80,6 +86,9 @@ export default async function Navbar() {
             />
 
             <div className="flex shrink-0 items-center justify-end">
+              {user && hasExpertProfile ? (
+                <SenseiModeToggle enabled={profile?.sensei_mode === true} />
+              ) : null}
               <NavbarClient
                 signedIn={!!user}
                 fullName={profile?.full_name ?? null}

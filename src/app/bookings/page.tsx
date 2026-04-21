@@ -72,12 +72,32 @@ export default async function ConsumerBookingsPage({ searchParams }: PageProps) 
 
     cards = await enrichBookingsForConsumerCards(supabase, rows);
   } else {
-    const { data: pastData } = await supabase
-      .from("bookings")
-      .select(SELECT_FIELDS)
-      .eq("consumer_user_id", user.id)
-      .in("status", ["completed", "cancelled", "no_show"])
-      .order("scheduled_at", { ascending: false });
+    const terminalStatuses = ["completed", "cancelled", "no_show"];
+    const [{ data: scheduledPastRows }, { data: messagingPastRows }] =
+      await Promise.all([
+        supabase
+          .from("bookings")
+          .select(SELECT_FIELDS)
+          .eq("consumer_user_id", user.id)
+          .not("scheduled_at", "is", null)
+          .lt("scheduled_at", nowIso)
+          .in("status", terminalStatuses)
+          .order("scheduled_at", { ascending: false }),
+        supabase
+          .from("bookings")
+          .select(SELECT_FIELDS)
+          .eq("consumer_user_id", user.id)
+          .in("session_type", ["messaging", "urgent_messaging"])
+          .in("status", terminalStatuses)
+          .order("created_at", { ascending: false }),
+      ]);
+
+    const scheduledPast = (scheduledPastRows ?? []) as BookingListRow[];
+    const scheduledPastIds = new Set(scheduledPast.map((r) => r.id));
+    const messagingPastExtra = (messagingPastRows ?? []).filter(
+      (r) => !scheduledPastIds.has(r.id),
+    ) as BookingListRow[];
+    const pastData = [...scheduledPast, ...messagingPastExtra];
 
     cards = await enrichBookingsForConsumerCards(
       supabase,

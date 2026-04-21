@@ -47,10 +47,10 @@ export default function SenseiModeToggle({ enabled }: SenseiModeToggleProps) {
       disabled={loading}
       aria-pressed={enabled}
       aria-label="Toggle Sensei mode"
-      className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+      className={`mr-3 cursor-pointer rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${
         enabled
-          ? "border-zinc-700 bg-zinc-800 text-white hover:border-zinc-500 hover:bg-zinc-700"
-          : "border-zinc-300 bg-transparent text-zinc-600 hover:border-zinc-400 hover:text-zinc-800 dark:border-zinc-600 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:text-zinc-100"
+          ? "border border-white bg-white text-zinc-900 shadow-md shadow-white/20 hover:bg-zinc-100"
+          : "border border-white/40 bg-white/5 text-white/60 shadow-inner hover:border-white/60 hover:bg-white/10 hover:text-white"
       }`}
     >
       Sensei

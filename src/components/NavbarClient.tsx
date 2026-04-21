@@ -52,6 +52,9 @@ export default function NavbarClient({
     const onExpert =
       pathname === "/expert" || pathname.startsWith("/expert/");
     const onExpertSetup = pathname.startsWith("/expert/setup");
+    const onMessages = pathname === "/messages" || pathname.startsWith("/messages/");
+
+    if (onMessages) return;
 
     if (pref === "expert" && onDashboard) {
       router.replace("/expert/dashboard");

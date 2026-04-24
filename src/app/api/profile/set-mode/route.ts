@@ -54,6 +54,11 @@ export async function POST(request: Request) {
       .select("id")
       .eq("user_id", user.id)
       .maybeSingle();
+    console.log("set-mode expert-profile", {
+      userId: user.id,
+      expertProfile,
+      expertProfileError,
+    });
 
     if (expertProfileError) {
       return NextResponse.json(

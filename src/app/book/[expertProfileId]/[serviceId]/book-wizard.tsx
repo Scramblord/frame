@@ -819,10 +819,8 @@ export function BookWizard({
                 </dd>
               </div>
               <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                Sensei fee ({Math.round(PLATFORM_FEE_RATE * 100)}%):{" "}
-                {platformFee != null ? formatGbp(platformFee) : "—"} — included
-                in total; the expert receives the remainder after card
-                processing.
+                The Sensei platform receives a small fee — the remainder is
+                passed directly to your Sensei upon completion of your session.
               </p>
               <div className="mt-3 flex justify-between gap-4 text-base font-semibold">
                 <dt className="text-zinc-900 dark:text-zinc-50">Total</dt>

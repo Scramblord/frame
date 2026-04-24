@@ -196,7 +196,7 @@ export default async function ConsumerBookingsPage({ searchParams }: PageProps) 
                             {(
                               (c.sessionType === "messaging" ||
                                 c.sessionType === "urgent_messaging") &&
-                              c.status === "confirmed"
+                              String(c.status) === "confirmed"
                                 ? "Awaiting reply"
                                 : formatStatusLabel(c.status)
                             )}

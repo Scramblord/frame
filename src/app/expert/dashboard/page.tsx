@@ -159,23 +159,23 @@ export default async function ExpertDashboardPage() {
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 7);
 
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
     .select("id, full_name, location, bio")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (profileError || !profile) {
+  if (!profile) {
     redirect("/onboarding");
   }
 
-  const { data: expert, error: expertError } = await supabase
+  const { data: expert } = await supabase
     .from("expert_profiles")
     .select("id, user_id, timezone, keywords, bio, stripe_onboarding_complete")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (expertError || !expert) {
+  if (!expert) {
     redirect("/expert/setup");
   }
 

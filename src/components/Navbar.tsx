@@ -86,7 +86,7 @@ export default async function Navbar() {
             />
 
             <div className="flex shrink-0 items-center justify-end">
-              {user && hasExpertProfile ? (
+              {user ? (
                 <SenseiModeToggle enabled={profile?.sensei_mode === true} />
               ) : null}
               <NavbarClient

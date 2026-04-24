@@ -25,7 +25,10 @@ export default function SenseiModeToggle({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sensei_mode: nextMode }),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        console.error("set-mode failed", res.status, await res.text());
+        return;
+      }
       const setModeResult = (await res.json()) as {
         ok?: boolean;
         hasExpertProfile?: boolean;

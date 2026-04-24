@@ -232,7 +232,7 @@ export default async function BookingDetailPage({
       ) : null}
 
       {isConsumer ? (
-        !hideJoinSession || canCancel ? (
+        !isMessagingSession && (!hideJoinSession || canCancel) ? (
           <div className="mt-8 space-y-3 rounded-2xl border border-zinc-200/80 bg-white p-5 dark:border-zinc-700/80 dark:bg-zinc-900">
             {!hideJoinSession && showJoinSessionActions ? (
               <div>

@@ -301,7 +301,9 @@ export default async function ExpertDashboardPage() {
     const consumerName = consumerNameById.get(booking.consumer_user_id) ?? "Client";
     return {
       id: booking.id,
-      sessionType: booking.session_type === "audio" ? "audio" : "video",
+      sessionType: (booking.session_type === "audio"
+        ? "audio"
+        : "video") as "audio" | "video",
       consumerName,
       consumerInitials: initials(consumerName),
       serviceName: serviceById.get(booking.service_id) ?? "Session",
@@ -319,6 +321,7 @@ export default async function ExpertDashboardPage() {
       const latest = latestMessageByBooking.get(booking.id);
       return {
         id: booking.id,
+        sessionType: booking.session_type as "messaging" | "urgent_messaging",
         consumerName,
         consumerInitials: initials(consumerName),
         preview: latest?.content ?? "No messages yet.",

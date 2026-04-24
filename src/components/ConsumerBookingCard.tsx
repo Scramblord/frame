@@ -37,6 +37,12 @@ export function ConsumerBookingCard({
   showLeaveReviewLink = false,
   openConversationHref,
 }: ConsumerBookingCardProps) {
+  const isMessagingSession =
+    sessionType === "messaging" || sessionType === "urgent_messaging";
+  const statusLabel =
+    isMessagingSession && status === "confirmed"
+      ? "Awaiting reply"
+      : formatStatusLabel(status);
   const cardInner = (
     <div className="flex gap-4">
       <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800">
@@ -62,7 +68,7 @@ export function ConsumerBookingCard({
           <span
             className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusBadgeStyles(status)}`}
           >
-            {formatStatusLabel(status)}
+            {statusLabel}
           </span>
         </div>
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
@@ -80,7 +86,7 @@ export function ConsumerBookingCard({
           </p>
         ) : (
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Time to be arranged
+            {isMessagingSession ? "Messaging session" : "Time to be arranged"}
           </p>
         )}
         <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">

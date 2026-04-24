@@ -112,6 +112,9 @@ export default async function BookingDetailPage({
 
   const showAvSession =
     booking.session_type === "audio" || booking.session_type === "video";
+  const isMessagingSession =
+    booking.session_type === "messaging" ||
+    booking.session_type === "urgent_messaging";
   const joinActive = canShowJoinSession({
     sessionType: booking.session_type,
     status: booking.status,
@@ -126,11 +129,14 @@ export default async function BookingDetailPage({
   const showJoinSessionActions = booking.status === "confirmed";
 
   const showMessagingConversation =
-    (booking.session_type === "messaging" ||
-      booking.session_type === "urgent_messaging") &&
+    isMessagingSession &&
     (booking.status === "confirmed" ||
       booking.status === "in_progress" ||
       booking.status === "completed");
+  const statusLabel =
+    isMessagingSession && booking.status === "confirmed"
+      ? "Awaiting reply"
+      : formatStatusLabel(booking.status);
 
   const backHref = isConsumer ? "/bookings" : "/expert/bookings";
 
@@ -198,8 +204,9 @@ export default async function BookingDetailPage({
         <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100">
           <p className="font-semibold">You&apos;re booked in!</p>
           <p className="mt-1 text-emerald-800/95 dark:text-emerald-200/90">
-            We&apos;ll email you with next steps. You can revisit this page any
-            time.
+            {isMessagingSession
+              ? "Your payment is confirmed. Your Sensei will respond within their stated response window."
+              : "We&apos;ll email you with next steps. You can revisit this page any time."}
           </p>
         </div>
       ) : null}
@@ -229,7 +236,16 @@ export default async function BookingDetailPage({
           <div className="mt-8 space-y-3 rounded-2xl border border-zinc-200/80 bg-white p-5 dark:border-zinc-700/80 dark:bg-zinc-900">
             {!hideJoinSession && showJoinSessionActions ? (
               <div>
-                {showAvSession && joinActive ? (
+                {isMessagingSession ? (
+                  showMessagingConversation ? (
+                    <Link
+                      href={`/messages/${booking.id}`}
+                      className="flex w-full items-center justify-center rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                    >
+                      Go to conversation
+                    </Link>
+                  ) : null
+                ) : showAvSession && joinActive ? (
                   <Link
                     href={`/session/${booking.id}`}
                     className="flex w-full items-center justify-center rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
@@ -246,7 +262,9 @@ export default async function BookingDetailPage({
                   </button>
                 )}
                 <p className="mt-2 text-center text-sm text-zinc-600 dark:text-zinc-400">
-                  {!showAvSession
+                  {isMessagingSession
+                    ? "Messaging session is active in your conversation thread."
+                    : !showAvSession
                     ? "Join is available for audio and video sessions."
                     : !booking.scheduled_at
                       ? "Time to be arranged for this session."
@@ -337,7 +355,7 @@ export default async function BookingDetailPage({
           <span
             className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusBadgeStyles(booking.status)}`}
           >
-            {formatStatusLabel(booking.status)}
+            {statusLabel}
           </span>
         </div>
         <dl className="space-y-3 text-sm">

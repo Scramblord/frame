@@ -120,6 +120,9 @@ export default async function ExpertBookingDetailPage({ params }: PageProps) {
 
   const showAvSession =
     booking.session_type === "audio" || booking.session_type === "video";
+  const isMessagingSession =
+    booking.session_type === "messaging" ||
+    booking.session_type === "urgent_messaging";
   const joinActive = canShowJoinSession({
     sessionType: booking.session_type,
     status: booking.status,
@@ -133,11 +136,14 @@ export default async function ExpertBookingDetailPage({ params }: PageProps) {
     booking.status === "no_show";
 
   const showMessagingConversation =
-    (booking.session_type === "messaging" ||
-      booking.session_type === "urgent_messaging") &&
+    isMessagingSession &&
     (booking.status === "confirmed" ||
       booking.status === "in_progress" ||
       booking.status === "completed");
+  const statusLabel =
+    isMessagingSession && booking.status === "confirmed"
+      ? "Awaiting reply"
+      : formatStatusLabel(booking.status);
 
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-4 py-8 sm:px-6 sm:py-10">
@@ -210,7 +216,16 @@ export default async function ExpertBookingDetailPage({ params }: PageProps) {
         <div className="mt-8 space-y-3 rounded-2xl border border-zinc-200/80 bg-white p-5 dark:border-zinc-700/80 dark:bg-zinc-900">
           {!hideJoinSession ? (
             <div>
-              {showAvSession && joinActive ? (
+              {isMessagingSession ? (
+                showMessagingConversation ? (
+                  <Link
+                    href={`/messages/${booking.id}`}
+                    className="flex w-full items-center justify-center rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                  >
+                    Go to conversation
+                  </Link>
+                ) : null
+              ) : showAvSession && joinActive ? (
                 <Link
                   href={`/session/${booking.id}`}
                   className="flex w-full items-center justify-center rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
@@ -227,7 +242,9 @@ export default async function ExpertBookingDetailPage({ params }: PageProps) {
                 </button>
               )}
               <p className="mt-2 text-center text-sm text-zinc-600 dark:text-zinc-400">
-                {!showAvSession
+                {isMessagingSession
+                  ? "Messaging session is active in your conversation thread."
+                  : !showAvSession
                   ? "Join is available for audio and video sessions."
                   : !booking.scheduled_at
                     ? "Time to be arranged for this session."
@@ -261,7 +278,7 @@ export default async function ExpertBookingDetailPage({ params }: PageProps) {
           <span
             className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusBadgeStyles(booking.status)}`}
           >
-            {formatStatusLabel(booking.status)}
+            {statusLabel}
           </span>
         </div>
         <dl className="space-y-3 text-sm">

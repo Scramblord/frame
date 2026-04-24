@@ -1,11 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import { headers } from "next/headers";
 import NavbarCenter from "@/components/NavbarCenter";
 import NavbarClient from "@/components/NavbarClient";
 import BecomeExpertBanner from "@/components/BecomeExpertBanner";
-import SenseiModeToggle from "@/components/SenseiModeToggle";
+import SenseiModeToggle from "./SenseiModeToggle";
 
 export default async function Navbar() {
+  const headerStore = await headers();
+  const pathname =
+    headerStore.get("x-pathname") ?? headerStore.get("next-url") ?? "";
+  const darkNav = pathname === "/expert" || pathname.startsWith("/expert/");
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -87,7 +93,10 @@ export default async function Navbar() {
 
             <div className="flex shrink-0 items-center justify-end">
               {user ? (
-                <SenseiModeToggle enabled={profile?.sensei_mode === true} />
+                <SenseiModeToggle
+                  enabled={profile?.sensei_mode === true}
+                  darkNav={darkNav}
+                />
               ) : null}
               <NavbarClient
                 signedIn={!!user}

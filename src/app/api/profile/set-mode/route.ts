@@ -48,5 +48,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true });
+  const { data: expertProfile, error: expertProfileError } = await supabase
+    .from("expert_profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (expertProfileError) {
+    return NextResponse.json(
+      { error: expertProfileError.message },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json({
+    ok: true,
+    hasExpertProfile: Boolean(expertProfile),
+  });
 }

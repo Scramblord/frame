@@ -22,18 +22,16 @@ export default function SenseiModeToggle({ enabled }: SenseiModeToggleProps) {
         body: JSON.stringify({ sensei_mode: nextMode }),
       });
       if (!res.ok) return;
-      router.refresh();
+      const setModeResult = (await res.json()) as {
+        ok?: boolean;
+        hasExpertProfile?: boolean;
+      };
       if (!nextMode) {
         router.push("/dashboard");
         return;
       }
-      const expertStatusRes = await fetch("/api/profile/expert-status");
-      if (!expertStatusRes.ok) return;
-      const expertStatus = (await expertStatusRes.json()) as {
-        hasExpertProfile?: boolean;
-      };
       router.push(
-        expertStatus.hasExpertProfile ? "/expert/dashboard" : "/expert/setup",
+        setModeResult.hasExpertProfile ? "/expert/dashboard" : "/expert/setup",
       );
     } finally {
       setLoading(false);
@@ -47,10 +45,10 @@ export default function SenseiModeToggle({ enabled }: SenseiModeToggleProps) {
       disabled={loading}
       aria-pressed={enabled}
       aria-label="Toggle Sensei mode"
-      className={`mr-3 cursor-pointer rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${
+      className={`mr-3 cursor-pointer rounded-md px-4 py-1.5 text-sm font-medium transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${
         enabled
-          ? "border border-white bg-white text-zinc-900 shadow-md shadow-white/20 hover:bg-zinc-100"
-          : "border border-white/40 bg-white/5 text-white/60 shadow-inner hover:border-white/60 hover:bg-white/10 hover:text-white"
+          ? "border border-white bg-white text-zinc-900 hover:bg-white/90"
+          : "border border-white/30 bg-transparent text-white/50 hover:border-white/60 hover:text-white/80"
       }`}
     >
       Sensei

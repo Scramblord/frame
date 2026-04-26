@@ -17,6 +17,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ExpertDashboardPage() {
   const supabase = await createClient();
+  const now = new Date();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -74,6 +75,12 @@ export default async function ExpertDashboardPage() {
     .eq("expert_user_id", user.id)
     .eq("status", "completed");
 
+  const { data: completedBookingsForStats } = await supabase
+    .from("bookings")
+    .select("total_amount, completed_at")
+    .eq("expert_user_id", user.id)
+    .eq("status", "completed");
+
   const { data: statsRows, error: statsError } = await supabase.rpc(
     "get_expert_review_stats",
     { p_expert_user_id: user.id },
@@ -106,7 +113,7 @@ export default async function ExpertDashboardPage() {
         : null;
   }
 
-  const nowMs = Date.now();
+  const nowMs = now.getTime();
   const { data: expertUpcomingRaw } = await supabase
     .from("bookings")
     .select(
@@ -118,13 +125,15 @@ export default async function ExpertDashboardPage() {
     .order("scheduled_at", { ascending: true })
     .limit(50);
 
-  const expertUpcomingRows =
+  const expertUpcomingAll =
     expertUpcomingRaw?.filter((b) => {
       if (b.duration_minutes == null || !b.scheduled_at) return false;
       const endMs =
         new Date(b.scheduled_at).getTime() + b.duration_minutes * 60 * 1000;
       return endMs > nowMs;
-    }).slice(0, 3) ?? [];
+    }) ?? [];
+
+  const expertUpcomingRows = expertUpcomingAll.slice(0, 3);
 
   const expertUpcomingCards = await enrichBookingsForExpertCards(
     supabase,
@@ -149,13 +158,113 @@ export default async function ExpertDashboardPage() {
     ? await fetchExpertStripeEarnings(stripeAccountId)
     : null;
 
+  const hour = now.getHours();
+  const greeting =
+    hour >= 5 && hour < 12
+      ? "Good morning"
+      : hour >= 12 && hour < 18
+        ? "Good afternoon"
+        : "Good evening";
+  const firstName = profile.full_name?.trim().split(/\s+/)[0] || "Sensei";
+
+  const startOfWeek = new Date(now);
+  const day = startOfWeek.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  startOfWeek.setDate(startOfWeek.getDate() + diffToMonday);
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(endOfWeek.getDate() + 7);
+
+  const weeklyUpcomingCount = expertUpcomingAll.filter((b) => {
+    if (!b.scheduled_at) return false;
+    const ms = new Date(b.scheduled_at).getTime();
+    return ms >= startOfWeek.getTime() && ms < endOfWeek.getTime();
+  }).length;
+
+  const monthLabel = now.toLocaleDateString("en-GB", {
+    month: "long",
+    year: "numeric",
+  });
+
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const completedThisMonth = (completedBookingsForStats ?? []).filter((b) => {
+    if (!b.completed_at) return false;
+    const ms = new Date(b.completed_at).getTime();
+    return ms >= startOfMonth.getTime() && ms < endOfMonth.getTime();
+  });
+
+  const thisMonthRevenue = completedThisMonth.reduce((sum, b) => {
+    const amount = typeof b.total_amount === "number" ? b.total_amount : Number(b.total_amount);
+    return Number.isFinite(amount) ? sum + amount : sum;
+  }, 0);
+
+  const formatGbpWhole = new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex min-h-screen flex-1 flex-col bg-[var(--color-bg)]">
       <Navbar />
       <SyncSenseiModeOnMount senseiMode />
       <ActiveSessionBanner />
-      <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
-        <h1 className="sr-only">Expert dashboard</h1>
+      <main className="mx-auto w-full max-w-4xl flex-1 px-4 pb-16 pt-10 sm:px-6">
+        <header>
+          <h1 className="mb-1 text-3xl font-bold tracking-tight text-[var(--color-text)]">
+            {greeting}, {firstName}
+          </h1>
+          <p className="text-sm text-[var(--color-text-muted)]">
+            {monthLabel} — {weeklyUpcomingCount} confirmed/in_progress bookings this week
+          </p>
+        </header>
+
+        <section className="mb-8 mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+              THIS MONTH
+            </p>
+            <p className="text-2xl font-bold tracking-tight text-[var(--color-text)]">
+              {thisMonthRevenue > 0 ? formatGbpWhole.format(thisMonthRevenue) : "£0"}
+            </p>
+          </article>
+
+          <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+              SESSIONS
+            </p>
+            <p className="text-2xl font-bold tracking-tight text-[var(--color-text)]">
+              {sessionsCompleted ?? 0}
+            </p>
+            <p className="mt-1 text-xs font-medium text-green-600">
+              +{completedThisMonth.length} this month
+            </p>
+          </article>
+
+          <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+              AVG. RATING
+            </p>
+            <p className="text-2xl font-bold tracking-tight text-[var(--color-text)]">
+              {avgRating != null && !Number.isNaN(avgRating)
+                ? `${avgRating.toFixed(1)} ★`
+                : "—"}
+            </p>
+          </article>
+
+          <article className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+              RESPONSE
+            </p>
+            <p className="text-2xl font-bold tracking-tight text-[var(--color-text)]">
+              {"< 2h"}
+            </p>
+          </article>
+        </section>
+
         <section className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             Upcoming bookings

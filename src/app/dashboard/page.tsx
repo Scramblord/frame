@@ -5,7 +5,6 @@ import Navbar from "@/components/Navbar";
 import SyncSenseiModeOnMount from "@/components/SyncSenseiModeOnMount";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import {
   fetchExpertsWithProfiles,
@@ -132,53 +131,78 @@ export default async function DashboardPage() {
                   .toUpperCase();
                 const fromPrice = startingPrice(ep);
                 const tags = (ep.keywords ?? []).slice(0, 4);
+                const bio =
+                  typeof ep.bio === "string" ? ep.bio.trim() : "";
+                const truncatedBio =
+                  bio.length > 100 ? `${bio.slice(0, 100)}...` : bio;
+                const reviewCount =
+                  typeof ep.review_count === "number" ? ep.review_count : 0;
+                const avgRating =
+                  typeof ep.avg_rating === "number" ? ep.avg_rating : null;
 
                 return (
                   <li key={ep.user_id as string}>
-                    <Link
-                      href={`/experts/${p.id}`}
-                      className="flex gap-4 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] transition hover:border-[var(--color-border-strong)]"
-                    >
-                      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-700">
+                    <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)]">
+                      <div className="flex items-start gap-3">
+                        <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-700">
                         {p.avatar_url ? (
-                          <Image
+                          <img
                             src={p.avatar_url}
                             alt=""
-                            fill
-                            className="object-cover"
-                            sizes="40px"
+                            className="h-full w-full object-cover"
+                            width={44}
+                            height={44}
                           />
                         ) : (
-                          <div className="flex h-full w-full items-center justify-center text-xs font-semibold">
+                          <div className="flex h-full w-full items-center justify-center text-sm font-semibold">
                             {initials}
                           </div>
                         )}
-                      </div>
-                      <div className="min-w-0 flex-1">
+                        </div>
                         <div className="flex items-start justify-between gap-2">
-                          <span className="text-sm font-semibold text-[var(--color-text)]">
-                            {name}
-                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-[var(--color-text)]">
+                              {name}
+                            </p>
+                            {tags.length > 0 ? (
+                              <ul className="mt-2 flex flex-wrap gap-1">
+                                {tags.map((tag: string) => (
+                                  <li
+                                    key={tag}
+                                    className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600"
+                                  >
+                                    {tag}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : null}
+                          </div>
                           {fromPrice != null ? (
                             <span className="shrink-0 text-sm font-semibold text-[var(--color-text)]">
                               From {formatGbp(fromPrice)}
                             </span>
                           ) : null}
                         </div>
-                        {tags.length > 0 ? (
-                          <ul className="mt-2 flex flex-wrap gap-1">
-                            {tags.map((tag: string) => (
-                              <li
-                                key={tag}
-                                className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600"
-                              >
-                                {tag}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : null}
                       </div>
-                    </Link>
+                      {truncatedBio ? (
+                        <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+                          {truncatedBio}
+                        </p>
+                      ) : null}
+                      <div className="mt-3 flex items-center justify-between gap-2">
+                        <p className="text-xs text-[var(--color-text-muted)]">
+                          {reviewCount > 0 && avgRating != null
+                            ? `★ ${avgRating.toFixed(1)} (${reviewCount} reviews)`
+                            : "No reviews yet"}
+                        </p>
+                        <Link
+                          href={`/experts/${p.id}`}
+                          className="text-xs text-[var(--color-accent)] hover:underline"
+                        >
+                          View profile →
+                        </Link>
+                      </div>
+                    </div>
                   </li>
                 );
               })}

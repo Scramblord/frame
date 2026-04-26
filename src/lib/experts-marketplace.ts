@@ -75,6 +75,9 @@ export function startingPrice(
 export type ExpertWithProfile = Record<string, unknown> & {
   user_id: string;
   keywords?: string[] | null;
+  bio?: string | null;
+  avg_rating?: number | null;
+  review_count?: number;
   profile?: {
     id: string;
     full_name: string | null;
@@ -175,11 +178,39 @@ export async function fetchExpertsWithProfiles(
     servicesByExpert.set(uid, list);
   }
 
+  const { data: reviewStatsRows } =
+    userIds.length > 0
+      ? await supabase
+          .from("expert_review_stats")
+          .select("expert_user_id, avg_rating, review_count")
+          .in("expert_user_id", userIds)
+      : {
+          data: [] as {
+            expert_user_id: string;
+            avg_rating: number | string | null;
+            review_count: number | string;
+          }[],
+        };
+
+  const reviewStatsByExpert = new Map<
+    string,
+    { review_count: number; avg_rating: number | null }
+  >();
+  for (const row of reviewStatsRows ?? []) {
+    reviewStatsByExpert.set(row.expert_user_id as string, {
+      review_count: Number(row.review_count) || 0,
+      avg_rating:
+        row.avg_rating == null ? null : Number(row.avg_rating),
+    });
+  }
+
   let experts = expertProfiles
     .map((ep) => ({
       ...ep,
       profile: profileMap.get(ep.user_id as string) as ExpertWithProfile["profile"],
       services: servicesByExpert.get(ep.user_id as string) ?? [],
+      review_count: reviewStatsByExpert.get(ep.user_id as string)?.review_count ?? 0,
+      avg_rating: reviewStatsByExpert.get(ep.user_id as string)?.avg_rating ?? null,
     }))
     .filter((ep) => ep.profile?.id) as ExpertWithProfile[];
 

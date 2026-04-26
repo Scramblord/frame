@@ -106,38 +106,38 @@ export default async function ConsumerBookingsPage({ searchParams }: PageProps) 
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
+    <main className="mx-auto min-h-screen w-full max-w-4xl flex-1 bg-[var(--color-bg)] px-4 pb-16 pt-10 sm:px-6">
       <Link
         href="/dashboard"
-        className="text-sm font-medium text-zinc-600 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
+        className="mb-6 block text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
       >
         ← Back to dashboard
       </Link>
 
-      <h1 className="mt-6 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+      <h1 className="mb-1 text-3xl font-bold tracking-tight text-[var(--color-text)]">
         My bookings
       </h1>
-      <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="mb-8 text-sm text-[var(--color-text-muted)]">
         Upcoming sessions and your history.
       </p>
 
-      <div className="mt-8 flex gap-2 rounded-xl border border-zinc-200 bg-zinc-100/80 p-1 dark:border-zinc-700 dark:bg-zinc-800/50">
+      <div className="mb-6 flex gap-0 border-b border-[var(--color-border)]">
         <Link
           href="/bookings?tab=upcoming"
-          className={`flex-1 rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition ${
+          className={`text-sm font-medium ${
             tab === "upcoming"
-              ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-900 dark:text-zinc-50"
-              : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              ? "-mb-px border-b-2 border-[var(--color-accent)] px-4 pb-3 text-[var(--color-text)]"
+              : "px-4 pb-3 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
           }`}
         >
           Upcoming
         </Link>
         <Link
           href="/bookings?tab=past"
-          className={`flex-1 rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition ${
+          className={`text-sm font-medium ${
             tab === "past"
-              ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-900 dark:text-zinc-50"
-              : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              ? "-mb-px border-b-2 border-[var(--color-accent)] px-4 pb-3 text-[var(--color-text)]"
+              : "px-4 pb-3 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
           }`}
         >
           Past
@@ -145,8 +145,8 @@ export default async function ConsumerBookingsPage({ searchParams }: PageProps) 
       </div>
 
       {cards.length === 0 ? (
-        <div className="mt-8 rounded-2xl border border-dashed border-zinc-300 bg-white/80 px-6 py-12 text-center dark:border-zinc-600 dark:bg-zinc-900/60">
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <div className="py-16 text-center">
+          <p className="text-sm text-[var(--color-text-muted)]">
             {tab === "upcoming"
               ? "You have no upcoming sessions. Book one when you're ready."
               : "No past bookings yet — they'll appear here after your sessions."}
@@ -154,7 +154,7 @@ export default async function ConsumerBookingsPage({ searchParams }: PageProps) 
           {tab === "upcoming" ? (
             <Link
               href="/search"
-              className="mt-4 inline-flex rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              className="mt-4 inline-flex rounded-lg bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
             >
               Find a Sensei
             </Link>
@@ -163,11 +163,12 @@ export default async function ConsumerBookingsPage({ searchParams }: PageProps) 
       ) : tab === "past" ? (
         <PastBookingsFilteredList variant="consumer" cards={cards} />
       ) : (
-        <ul className="mt-8 space-y-3">
+        <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+          <ul>
           {cards.map((c) =>
             c.status === "pending_payment" ? (
-              <li key={c.bookingId}>
-                <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
+              <li key={c.bookingId} className="border-b border-[var(--color-border)] p-4 last:border-0">
+                <div>
                   <Link href={`/bookings/${c.bookingId}`} className="block">
                     <div className="flex gap-4">
                       <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800">
@@ -252,12 +253,13 @@ export default async function ConsumerBookingsPage({ searchParams }: PageProps) 
                 </div>
               </li>
             ) : (
-              <li key={c.bookingId}>
+              <li key={c.bookingId} className="border-b border-[var(--color-border)] p-4 last:border-0">
                 <ConsumerBookingCard {...c} />
               </li>
             ),
           )}
-        </ul>
+          </ul>
+        </div>
       )}
       <Script
         id="resume-payment-handler"

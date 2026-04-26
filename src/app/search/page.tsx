@@ -29,21 +29,21 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const experts = await fetchExpertsWithProfiles(supabase, trimmed);
 
   return (
-    <div className="min-h-full flex-1 bg-gradient-to-b from-zinc-100 to-zinc-200/90 dark:from-zinc-950 dark:to-zinc-900">
+    <div className="min-h-screen flex-1 bg-[var(--color-bg)]">
       <Navbar />
 
-      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+      <main className="mx-auto max-w-4xl px-4 pb-16 pt-10 sm:px-6">
+        <h1 className="mb-1 text-3xl font-bold tracking-tight text-[var(--color-text)]">
           Find a Sensei
         </h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="mb-6 text-sm text-[var(--color-text-muted)]">
           Search by topic, skill, or speciality.
         </p>
 
         <form
           action="/search"
           method="get"
-          className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
+          className="flex h-14 items-center rounded-xl border border-[var(--color-border)] bg-white px-2 shadow-[var(--shadow-sm)]"
         >
           <input
             id="q"
@@ -51,38 +51,31 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             type="search"
             defaultValue={trimmed}
             placeholder="e.g. jiujitsu, physiotherapy, strength and conditioning…"
-            className="w-full flex-1 rounded-xl border border-zinc-200 bg-white px-4 py-3.5 text-base text-zinc-900 shadow-sm outline-none placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-500 dark:focus:ring-zinc-100/20"
+            className="h-full w-full border-0 bg-transparent px-3 text-base text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-placeholder)]"
             autoComplete="off"
           />
           <button
             type="submit"
-            className="shrink-0 rounded-xl bg-zinc-900 px-8 py-3.5 text-sm font-semibold text-white shadow-md transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="shrink-0 rounded-lg bg-[var(--color-accent)] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
           >
             Search
           </button>
         </form>
 
         {experts.length === 0 ? (
-          <div className="mt-16 rounded-2xl border border-dashed border-zinc-300 bg-white/80 px-8 py-14 text-center dark:border-zinc-600 dark:bg-zinc-900/80">
-            <p className="text-lg font-medium text-zinc-800 dark:text-zinc-100">
-              No Senseis match that search
-            </p>
-            <p className="mx-auto mt-2 max-w-md text-sm text-zinc-500 dark:text-zinc-400">
+          <div className="py-16 text-center">
+            <p className="text-sm text-[var(--color-text-muted)]">
               {trimmed
-                ? "Try different words, fewer terms, or browse with an empty search to see everyone."
-                : "No Sensei profiles are available yet. Check back soon."}
+                ? `No Senseis found for "${trimmed}". Try a different search.`
+                : "No Senseis found for ''. Try a different search."}
             </p>
-            {trimmed ? (
-              <Link
-                href="/search"
-                className="mt-6 inline-block text-sm font-semibold text-zinc-900 underline-offset-4 hover:underline dark:text-zinc-100"
-              >
-                Clear search
-              </Link>
-            ) : null}
           </div>
         ) : (
-          <ul className="mt-10 grid gap-5">
+          <section className="mt-8">
+            <p className="mb-4 text-sm text-[var(--color-text-muted)]">
+              {experts.length} Senseis found
+            </p>
+            <ul className="grid gap-4">
             {experts.map((ep) => {
               const profile = ep.profile;
               if (!profile?.id) return null;
@@ -110,20 +103,20 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 <li key={ep.user_id as string}>
                   <Link
                     href={`/experts/${profile.id}`}
-                    className="block rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-md transition hover:border-zinc-300 hover:shadow-lg sm:p-6 dark:border-zinc-700/80 dark:bg-zinc-900 dark:hover:border-zinc-600"
+                    className="block rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] transition hover:border-[var(--color-border-strong)]"
                   >
-                    <div className="flex gap-4 sm:gap-5">
-                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800">
+                    <div className="flex gap-4">
+                      <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-zinc-200">
                         {profile.avatar_url ? (
                           <Image
                             src={profile.avatar_url}
                             alt=""
                             fill
                             className="object-cover"
-                            sizes="64px"
+                            sizes="44px"
                           />
                         ) : (
-                          <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-zinc-500">
+                          <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-zinc-700">
                             {initials}
                           </div>
                         )}
@@ -131,12 +124,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                            <h2 className="text-sm font-semibold text-[var(--color-text)]">
                               {name}
                             </h2>
                             {matchedServiceName ? (
-                              <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                                <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                              <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                                <span className="font-medium text-[var(--color-text)]">
                                   Offers:
                                 </span>{" "}
                                 {matchedServiceName}
@@ -144,28 +137,28 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                             ) : null}
                           </div>
                           {fromPrice != null ? (
-                            <span className="shrink-0 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+                            <span className="shrink-0 text-sm font-semibold text-[var(--color-text)]">
                               From {formatGbp(fromPrice)}
                             </span>
                           ) : (
-                            <span className="shrink-0 text-xs text-zinc-400">
+                            <span className="shrink-0 text-xs text-[var(--color-text-muted)]">
                               Pricing on profile
                             </span>
                           )}
                         </div>
                         {tags.length > 0 && (
                           <ul className="mt-3 flex flex-wrap gap-1.5">
-                            {tags.slice(0, 8).map((tag: string) => (
+                            {tags.slice(0, 4).map((tag: string) => (
                               <li
                                 key={tag}
-                                className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                                className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600"
                               >
                                 {tag}
                               </li>
                             ))}
-                            {tags.length > 8 && (
-                              <li className="px-1 text-xs text-zinc-400">
-                                +{tags.length - 8} more
+                            {tags.length > 4 && (
+                              <li className="px-1 text-xs text-[var(--color-text-muted)]">
+                                +{tags.length - 4} more
                               </li>
                             )}
                           </ul>
@@ -175,13 +168,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                             consultTypes.map((t) => (
                               <span
                                 key={t}
-                                className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:border-zinc-600 dark:bg-zinc-800/80 dark:text-zinc-400"
+                                className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600"
                               >
                                 {t}
                               </span>
                             ))
                           ) : (
-                            <span className="text-xs text-zinc-400">
+                            <span className="text-xs text-[var(--color-text-muted)]">
                               Consultation types on profile
                             </span>
                           )}
@@ -192,7 +185,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 </li>
               );
             })}
-          </ul>
+            </ul>
+          </section>
         )}
       </main>
     </div>

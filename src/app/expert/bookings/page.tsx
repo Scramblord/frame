@@ -84,38 +84,38 @@ export default async function ExpertBookingsPage({ searchParams }: PageProps) {
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
+    <main className="mx-auto min-h-screen w-full max-w-4xl flex-1 bg-[var(--color-bg)] px-4 pb-16 pt-10 sm:px-6">
       <Link
         href="/expert/dashboard"
-        className="text-sm font-medium text-zinc-600 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
+        className="mb-6 block text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
       >
         ← Back to dashboard
       </Link>
 
-      <h1 className="mt-6 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+      <h1 className="mb-1 text-3xl font-bold tracking-tight text-[var(--color-text)]">
         Bookings
       </h1>
-      <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="mb-8 text-sm text-[var(--color-text-muted)]">
         Sessions with your clients.
       </p>
 
-      <div className="mt-8 flex gap-2 rounded-xl border border-zinc-200 bg-zinc-100/80 p-1 dark:border-zinc-700 dark:bg-zinc-800/50">
+      <div className="mb-6 flex gap-0 border-b border-[var(--color-border)]">
         <Link
           href="/expert/bookings?tab=upcoming"
-          className={`flex-1 rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition ${
+          className={`text-sm font-medium ${
             tab === "upcoming"
-              ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-900 dark:text-zinc-50"
-              : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              ? "-mb-px border-b-2 border-[var(--color-accent)] px-4 pb-3 text-[var(--color-text)]"
+              : "px-4 pb-3 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
           }`}
         >
           Upcoming
         </Link>
         <Link
           href="/expert/bookings?tab=past"
-          className={`flex-1 rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition ${
+          className={`text-sm font-medium ${
             tab === "past"
-              ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-900 dark:text-zinc-50"
-              : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              ? "-mb-px border-b-2 border-[var(--color-accent)] px-4 pb-3 text-[var(--color-text)]"
+              : "px-4 pb-3 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
           }`}
         >
           Past
@@ -123,23 +123,31 @@ export default async function ExpertBookingsPage({ searchParams }: PageProps) {
       </div>
 
       {cards.length === 0 ? (
-        <div className="mt-8 rounded-2xl border border-dashed border-zinc-300 bg-white/80 px-6 py-12 text-center dark:border-zinc-600 dark:bg-zinc-900/60">
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <div className="py-16 text-center">
+          <p className="text-sm text-[var(--color-text-muted)]">
             {tab === "upcoming"
               ? "No upcoming sessions yet — they will show here when clients book you."
               : "No past sessions in this list yet."}
           </p>
+          <Link
+            href="/expert/dashboard"
+            className="mt-4 inline-flex rounded-lg bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
+          >
+            View dashboard
+          </Link>
         </div>
       ) : tab === "past" ? (
         <PastBookingsFilteredList variant="expert" cards={cards} />
       ) : (
-        <ul className="mt-8 space-y-3">
-          {cards.map((c) => (
-            <li key={c.bookingId}>
-              <ExpertBookingCard {...c} />
-            </li>
-          ))}
-        </ul>
+        <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+          <ul>
+            {cards.map((c) => (
+              <li key={c.bookingId} className="border-b border-[var(--color-border)] p-4 last:border-0">
+                <ExpertBookingCard {...c} />
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </main>
   );

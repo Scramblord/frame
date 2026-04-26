@@ -1,7 +1,7 @@
 import { ActiveSessionBanner } from "@/components/ActiveSessionBanner";
-import { ExpertBookingCard } from "@/components/ExpertBookingCard";
 import Navbar from "@/components/Navbar";
 import SyncSenseiModeOnMount from "@/components/SyncSenseiModeOnMount";
+import ScheduleTabs from "@/app/expert/dashboard/ScheduleTabs";
 import type { BookingListRow } from "@/lib/consumer-bookings";
 import { enrichBookingsForExpertCards } from "@/lib/expert-bookings";
 import { fetchExpertStripeEarnings } from "@/lib/expert-stripe-earnings";
@@ -133,11 +133,15 @@ export default async function ExpertDashboardPage() {
       return endMs > nowMs;
     }) ?? [];
 
-  const expertUpcomingRows = expertUpcomingAll.slice(0, 3);
-
   const expertUpcomingCards = await enrichBookingsForExpertCards(
     supabase,
-    expertUpcomingRows as BookingListRow[],
+    expertUpcomingAll as BookingListRow[],
+  );
+  const videoAudioBookings = expertUpcomingCards.filter(
+    (b) => b.sessionType === "video" || b.sessionType === "audio",
+  );
+  const messagingBookings = expertUpcomingCards.filter(
+    (b) => b.sessionType === "messaging" || b.sessionType === "urgent_messaging",
   );
 
   const keywords = expert?.keywords ?? [];
@@ -186,6 +190,12 @@ export default async function ExpertDashboardPage() {
     month: "long",
     year: "numeric",
   });
+  const subtitleLabel =
+    weeklyUpcomingCount === 0
+      ? monthLabel
+      : weeklyUpcomingCount === 1
+        ? `${monthLabel} — 1 session this week`
+        : `${monthLabel} — ${weeklyUpcomingCount} sessions this week`;
 
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -218,7 +228,7 @@ export default async function ExpertDashboardPage() {
             {greeting}, {firstName}
           </h1>
           <p className="text-sm text-[var(--color-text-muted)]">
-            {monthLabel} — {weeklyUpcomingCount} confirmed/in_progress bookings this week
+            {subtitleLabel}
           </p>
         </header>
 
@@ -265,43 +275,31 @@ export default async function ExpertDashboardPage() {
           </article>
         </section>
 
-        <section className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-            Upcoming bookings
-          </h2>
-          {expertUpcomingCards.length === 0 ? (
-            <>
-              <p className="mt-4 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-400">
-                No upcoming sessions yet.
+        <section>
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-bold text-[var(--color-text)]">
+                Schedule
+              </h2>
+              <p className="text-sm text-[var(--color-text-muted)]">
+                Upcoming sessions by format
               </p>
-              <div className="mt-5">
-                <Link
-                  href="/expert/bookings"
-                  className="text-sm font-semibold text-zinc-700 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100"
-                >
-                  View all bookings
-                </Link>
-              </div>
-            </>
-          ) : (
-            <>
-              <ul className="mt-4 space-y-3">
-                {expertUpcomingCards.map((card) => (
-                  <li key={card.bookingId}>
-                    <ExpertBookingCard {...card} />
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-5">
-                <Link
-                  href="/expert/bookings"
-                  className="text-sm font-semibold text-zinc-700 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-300 dark:hover:text-zinc-100"
-                >
-                  View all bookings
-                </Link>
-              </div>
-            </>
-          )}
+            </div>
+            <Link
+              href="/expert/availability"
+              className="text-sm font-medium text-[var(--color-accent)] hover:underline"
+            >
+              + Set availability
+            </Link>
+          </div>
+
+          <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+            <ScheduleTabs
+              videoAudioBookings={videoAudioBookings}
+              messagingBookings={messagingBookings}
+              hasUnreadMessages={false}
+            />
+          </div>
         </section>
 
         <div className="mt-10 flex flex-col gap-10">

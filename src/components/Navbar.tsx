@@ -4,7 +4,6 @@ import { headers } from "next/headers";
 import NavbarCenter from "@/components/NavbarCenter";
 import NavbarClient from "@/components/NavbarClient";
 import BecomeExpertBanner from "@/components/BecomeExpertBanner";
-import SenseiModeToggle from "./SenseiModeToggle";
 
 export default async function Navbar() {
   const headerStore = await headers();
@@ -92,11 +91,24 @@ export default async function Navbar() {
 
             <div className="flex shrink-0 items-center justify-end">
               {user ? (
-                <SenseiModeToggle
-                  isActive={darkNav}
-                  hasExpertProfile={hasExpertProfile}
-                  darkNav={darkNav}
-                />
+                <div className="mr-3 flex items-center gap-3 text-sm">
+                  <Link
+                    href="/dashboard"
+                    className={`transition hover:opacity-80 ${
+                      !darkNav ? "font-semibold underline underline-offset-4" : ""
+                    }`}
+                  >
+                    Student
+                  </Link>
+                  <Link
+                    href={hasExpertProfile ? "/expert/dashboard" : "/expert/setup"}
+                    className={`transition hover:opacity-80 ${
+                      darkNav ? "font-semibold underline underline-offset-4" : ""
+                    }`}
+                  >
+                    Sensei
+                  </Link>
+                </div>
               ) : null}
               <NavbarClient
                 signedIn={!!user}

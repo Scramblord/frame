@@ -2,6 +2,7 @@ import { ActiveSessionBanner } from "@/components/ActiveSessionBanner";
 import { ConsumerBookingCard } from "@/components/ConsumerBookingCard";
 import { enrichBookingsForConsumerCards } from "@/lib/consumer-bookings";
 import Navbar from "@/components/Navbar";
+import SyncSenseiModeOnMount from "@/components/SyncSenseiModeOnMount";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Image from "next/image";
@@ -62,6 +63,7 @@ export default async function DashboardPage() {
   return (
     <div className="flex min-h-full flex-1 flex-col bg-gradient-to-b from-zinc-100 to-zinc-200/90 dark:from-zinc-950 dark:to-zinc-900">
       <Navbar />
+      <SyncSenseiModeOnMount senseiMode={false} />
       <ActiveSessionBanner />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
         <div className="flex flex-wrap items-start justify-between gap-3">

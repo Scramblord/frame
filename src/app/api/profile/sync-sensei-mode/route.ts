@@ -49,28 +49,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    const { data: expertProfile, error: expertProfileError } = await supabase
-      .from("expert_profiles")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    console.log("set-mode expert-profile", {
-      userId: user.id,
-      expertProfile,
-      expertProfileError,
-    });
-
-    if (expertProfileError) {
-      return NextResponse.json(
-        { error: expertProfileError.message },
-        { status: 500 },
-      );
-    }
-
-    return NextResponse.json({
-      ok: true,
-      hasExpertProfile: Boolean(expertProfile),
-    });
+    return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("set-mode route error", err);
     return NextResponse.json({ error: "internal" }, { status: 500 });

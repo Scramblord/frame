@@ -1,6 +1,7 @@
 import { ActiveSessionBanner } from "@/components/ActiveSessionBanner";
 import { ExpertBookingCard } from "@/components/ExpertBookingCard";
 import Navbar from "@/components/Navbar";
+import SyncSenseiModeOnMount from "@/components/SyncSenseiModeOnMount";
 import type { BookingListRow } from "@/lib/consumer-bookings";
 import { enrichBookingsForExpertCards } from "@/lib/expert-bookings";
 import { fetchExpertStripeEarnings } from "@/lib/expert-stripe-earnings";
@@ -151,6 +152,7 @@ export default async function ExpertDashboardPage() {
   return (
     <div className="flex min-h-full flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
       <Navbar />
+      <SyncSenseiModeOnMount senseiMode />
       <ActiveSessionBanner />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
         <h1 className="sr-only">Expert dashboard</h1>

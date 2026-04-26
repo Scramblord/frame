@@ -3,6 +3,7 @@
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import SyncSenseiModeOnMount from "@/components/SyncSenseiModeOnMount";
 
 const SESSION_OPTIONS: number[] = [];
 for (let m = 15; m <= 8 * 60; m += 15) {
@@ -361,6 +362,7 @@ export default function ExpertSetupPage() {
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-gradient-to-b from-zinc-100 to-zinc-200/90 dark:from-zinc-950 dark:to-zinc-900">
+      <SyncSenseiModeOnMount senseiMode />
       <div className="relative flex-1 overflow-hidden px-4 py-12 sm:px-6 sm:py-16">
         <div
           aria-hidden

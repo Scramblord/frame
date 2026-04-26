@@ -21,14 +21,13 @@ export default async function Navbar() {
     id: string;
     full_name: string | null;
     avatar_url: string | null;
-    sensei_mode: boolean | null;
   } | null = null;
   let hasExpertProfile = false;
 
   if (user) {
     const { data: p } = await supabase
       .from("profiles")
-      .select("id, full_name, avatar_url, sensei_mode")
+      .select("id, full_name, avatar_url")
       .eq("user_id", user.id)
       .maybeSingle();
     profile = p;
@@ -94,7 +93,8 @@ export default async function Navbar() {
             <div className="flex shrink-0 items-center justify-end">
               {user ? (
                 <SenseiModeToggle
-                  enabled={profile?.sensei_mode === true}
+                  isActive={darkNav}
+                  hasExpertProfile={hasExpertProfile}
                   darkNav={darkNav}
                 />
               ) : null}

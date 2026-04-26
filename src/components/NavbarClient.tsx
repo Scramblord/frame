@@ -8,7 +8,6 @@ type NavbarClientProps = {
   fullName: string | null;
   initials: string | null;
   avatarUrl: string | null;
-  hasExpertProfile: boolean;
   signedIn: boolean;
 };
 
@@ -16,7 +15,6 @@ export default function NavbarClient({
   fullName,
   initials,
   avatarUrl,
-  hasExpertProfile,
   signedIn,
 }: NavbarClientProps) {
   const pathname = usePathname() ?? "";
@@ -162,55 +160,6 @@ export default function NavbarClient({
                 </p>
               </div>
             </div>
-
-            <div className="my-2 h-px bg-zinc-200 dark:bg-zinc-700" />
-
-            {isExpertMode ? (
-              <>
-                <div className="md:hidden">
-                  <Link
-                    href="/expert/dashboard"
-                    onClick={closeMenu}
-                    className={`${dropdownItemClass} ${pathname === "/expert/dashboard" ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100" : ""}`}
-                  >
-                    Dashboard
-                  </Link>
-                  <Link
-                    href="/expert/bookings"
-                    onClick={closeMenu}
-                    className={`${dropdownItemClass} ${(pathname === "/expert/bookings" || pathname.startsWith("/expert/bookings/")) ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100" : ""}`}
-                  >
-                    Bookings
-                  </Link>
-                  <Link
-                    href="/expert/availability"
-                    onClick={closeMenu}
-                    className={`${dropdownItemClass} ${(pathname === "/expert/availability" || pathname.startsWith("/expert/availability/")) ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100" : ""}`}
-                  >
-                    Availability
-                  </Link>
-                  <Link
-                    href="/expert/setup"
-                    onClick={closeMenu}
-                    className={`${dropdownItemClass} ${(pathname === "/expert/setup" || pathname.startsWith("/expert/setup/")) ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100" : ""}`}
-                  >
-                    Setup
-                  </Link>
-                  <div className="my-2 h-px bg-zinc-200 dark:bg-zinc-700" />
-                </div>
-              </>
-            ) : (
-              <>
-                <Link href="/bookings" onClick={closeMenu} className={dropdownItemClass}>
-                  My bookings
-                </Link>
-                {!hasExpertProfile ? (
-                  <Link href="/expert/setup" onClick={closeMenu} className={dropdownItemClass}>
-                    Become a Sensei
-                  </Link>
-                ) : null}
-              </>
-            )}
 
             <div className="my-2 h-px bg-zinc-200 dark:bg-zinc-700" />
 

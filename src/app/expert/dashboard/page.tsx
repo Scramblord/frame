@@ -216,6 +216,37 @@ export default async function ExpertDashboardPage() {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   });
+  const allTimeRevenue = (completedBookingsForStats ?? []).reduce((sum, b) => {
+    const amount =
+      typeof b.total_amount === "number" ? b.total_amount : Number(b.total_amount);
+    return Number.isFinite(amount) ? sum + amount : sum;
+  }, 0);
+  const avgPerSession =
+    (sessionsCompleted ?? 0) > 0 ? allTimeRevenue / (sessionsCompleted ?? 1) : 0;
+  const recentCompletedBookings = [...(completedBookingsForStats ?? [])]
+    .filter((b) => Boolean(b.completed_at))
+    .sort((a, b) => {
+      const aMs = new Date(a.completed_at as string).getTime();
+      const bMs = new Date(b.completed_at as string).getTime();
+      return bMs - aMs;
+    })
+    .slice(0, 5);
+  const activeDaysSummary =
+    availability.length > 0
+      ? [
+          ...new Set(
+            availability
+              .map((a) => DAY_NAMES[a.day_of_week] ?? null)
+              .filter((d): d is string => Boolean(d)),
+          ),
+        ].join(", ")
+      : "No availability set.";
+  const bioSummary = expert?.bio?.trim()
+    ? expert.bio.trim().length > 60
+      ? `${expert.bio.trim().slice(0, 60)}...`
+      : expert.bio.trim()
+    : "No bio added yet.";
+  const activeServicesCount = services.filter((s) => s.is_active !== false).length;
 
   return (
     <div className="flex min-h-screen flex-1 flex-col bg-[var(--color-bg)]">
@@ -300,333 +331,140 @@ export default async function ExpertDashboardPage() {
               hasUnreadMessages={false}
             />
           </div>
-        </section>
-
-        <div className="mt-10 flex flex-col gap-10">
-          {!stripeOnboardingComplete ? (
-            <div className="rounded-2xl border border-amber-300/80 bg-amber-50 px-4 py-4 shadow-sm dark:border-amber-700/80 dark:bg-amber-950/40 sm:px-5 sm:py-4">
-              <p className="text-sm font-medium text-amber-950 dark:text-amber-100">
-                You need to connect your bank account before you can accept
-                bookings and receive payouts.
-              </p>
-              <p className="mt-2 text-sm text-amber-900/90 dark:text-amber-200/90">
-                Complete Stripe Connect onboarding to receive earnings from
-                completed sessions.
-              </p>
-              <Link
-                href="/expert/connect"
-                className="mt-3 inline-flex rounded-xl bg-amber-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-800 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-100"
-              >
-                Connect bank account
-              </Link>
-            </div>
-          ) : null}
-
-          <section className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                Profile
-              </h2>
-              <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-                {profile.full_name?.trim() || "Expert"}
-              </p>
-              {profile.location ? (
-                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                  {profile.location}
-                </p>
-              ) : null}
-            </div>
+          <div className="mt-3 text-right">
             <Link
-              href="/expert/setup"
-              className="shrink-0 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              href="/expert/bookings"
+              className="text-sm text-[var(--color-accent)] hover:underline"
             >
-              Edit profile
+              View all bookings →
             </Link>
           </div>
-
-          {expert?.bio ? (
-            <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-              {String(expert.bio)}
-            </p>
-          ) : (
-            <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-              No bio yet — add one when you edit your profile.
-            </p>
-          )}
-
-          {keywords.length > 0 ? (
-            <div className="mt-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                Specialities
-              </p>
-              <ul className="mt-2 flex flex-wrap gap-2">
-                {keywords.map((k: string) => (
-                  <li
-                    key={k}
-                    className="rounded-full bg-zinc-100 px-3 py-1 text-sm text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200"
-                  >
-                    {k}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          <div className="mt-6 border-t border-zinc-100 pt-6 dark:border-zinc-800">
-            <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-              Services
-            </p>
-            {services.length === 0 ? (
-              <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
-                No services yet — add them in profile setup.
-              </p>
-            ) : (
-              <ul className="mt-3 space-y-4 text-sm text-zinc-700 dark:text-zinc-300">
-                {services.map((svc) => (
-                  <li
-                    key={svc.id}
-                    className="rounded-xl border border-zinc-100 bg-zinc-50/80 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-800/40"
-                  >
-                    <p className="font-semibold text-zinc-900 dark:text-zinc-100">
-                      {svc.name}
-                      {!svc.is_active ? (
-                        <span className="ml-2 text-xs font-normal text-zinc-500">
-                          (inactive)
-                        </span>
-                      ) : null}
-                    </p>
-                    <ul className="mt-2 space-y-1 text-xs">
-                      {svc.offers_messaging &&
-                      svc.messaging_flat_rate != null ? (
-                        <li>
-                          Messaging:{" "}
-                          {formatGbp(Number(svc.messaging_flat_rate))} flat
-                        </li>
-                      ) : null}
-                      {svc.offers_audio && svc.audio_hourly_rate != null ? (
-                        <li>
-                          Audio: {formatGbp(Number(svc.audio_hourly_rate))} / hr
-                        </li>
-                      ) : null}
-                      {svc.offers_video && svc.video_hourly_rate != null ? (
-                        <li>
-                          Video: {formatGbp(Number(svc.video_hourly_rate))} / hr
-                        </li>
-                      ) : null}
-                      {!svc.offers_messaging &&
-                      !svc.offers_audio &&
-                      !svc.offers_video ? (
-                        <li className="text-zinc-500">No rates configured</li>
-                      ) : null}
-                    </ul>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {!hasPublishedRates && services.length > 0 ? (
-              <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
-                Enable consultation types and pricing in profile setup.
-              </p>
-            ) : null}
-          </div>
         </section>
 
-          <section className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                Availability
-              </h2>
-              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                Your timezone:{" "}
-                <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                  {expert?.timezone?.trim() || "UTC"}
-                </span>
-              </p>
-            </div>
-            <Link
-              href="/expert/availability"
-              className="shrink-0 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 shadow-sm transition hover:border-zinc-300 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-500"
-            >
-              Edit availability
-            </Link>
-          </div>
-          {availability.length === 0 ? (
-            <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-              No weekly hours set yet. Add your schedule so clients know when you
-              can take bookings.
-            </p>
-          ) : (
-            <ul className="mt-4 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
-              {availability.map((a) => (
-                <li
-                  key={a.id}
-                  className="flex flex-wrap justify-between gap-2 rounded-lg border border-zinc-100 bg-zinc-50/80 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-800/40"
-                >
-                  <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                    {DAY_NAMES[a.day_of_week] ?? "Day"}
-                  </span>
-                  <span className="tabular-nums text-zinc-600 dark:text-zinc-400">
-                    {formatAvailTime(String(a.start_time))} –{" "}
-                    {formatAvailTime(String(a.end_time))}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        <section className="mt-6 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-sm)]">
+          <h2 className="text-xl font-bold text-[var(--color-text)]">Earnings</h2>
+          <p className="mb-4 text-sm text-[var(--color-text-muted)]">
+            Revenue across all session formats
+          </p>
 
-          <section className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-            Earnings
-          </h2>
-          {!canShowStripeEarnings ? (
-            <div className="mt-4 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-6 dark:border-zinc-700 dark:bg-zinc-800/40">
-              <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                Connect your bank account to start receiving payments
-              </p>
-              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-                Once Stripe Connect is complete, your balance and payouts from
-                completed sessions will appear here.
-              </p>
+          {!canShowStripeEarnings || !earningsResult || !earningsResult.ok ? (
+            <p className="text-sm text-[var(--color-text-muted)]">
+              Connect your Stripe account to track earnings.{" "}
               <Link
                 href="/expert/connect"
-                className="mt-4 inline-flex rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="text-[var(--color-accent)] hover:underline"
               >
-                Connect bank account
+                Connect Stripe
               </Link>
-            </div>
-          ) : earningsResult && !earningsResult.ok ? (
-            <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-              Earnings data unavailable
             </p>
-          ) : earningsResult && earningsResult.ok ? (
+          ) : (
             <>
-              <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-xl border border-zinc-100 bg-zinc-50/80 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-800/40">
-                  <dt className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                    Available balance
-                  </dt>
-                  <dd className="mt-1 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
-                    {formatGbp(earningsResult.data.availablePence / 100)}
-                  </dd>
-                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                    Ready to pay out
-                  </p>
-                </div>
-                <div className="rounded-xl border border-zinc-100 bg-zinc-50/80 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-800/40">
-                  <dt className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                    Pending balance
-                  </dt>
-                  <dd className="mt-1 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
-                    {formatGbp(earningsResult.data.pendingPence / 100)}
-                  </dd>
-                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                    On the way, not yet available
-                  </p>
-                </div>
-                <div className="rounded-xl border border-zinc-100 bg-zinc-50/80 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-800/40">
-                  <dt className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              <div className="mb-6 grid grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-[var(--color-text-muted)]">
                     This month
-                  </dt>
-                  <dd className="mt-1 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
-                    {formatGbp(earningsResult.data.thisMonthPence / 100)}
-                  </dd>
-                </div>
-                <div className="rounded-xl border border-zinc-100 bg-zinc-50/80 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-800/40">
-                  <dt className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                    Last month
-                  </dt>
-                  <dd className="mt-1 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
-                    {formatGbp(earningsResult.data.lastMonthPence / 100)}
-                  </dd>
-                </div>
-              </dl>
-              <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                Lifetime earnings:{" "}
-                <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                  {formatGbp(earningsResult.data.lifetimePence / 100)}
-                </span>
-              </p>
-              <div className="mt-6 border-t border-zinc-100 pt-5 dark:border-zinc-800">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                  Recent payouts
-                </h3>
-                {earningsResult.data.recentTransfers.length === 0 ? (
-                  <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-                    No payouts yet — earnings will appear here after completed
-                    sessions.
                   </p>
-                ) : (
-                  <ul className="mt-3 space-y-2">
-                    {earningsResult.data.recentTransfers.map((t) => (
+                  <p className="text-2xl font-bold text-[var(--color-text)]">
+                    {thisMonthRevenue > 0 ? formatGbpWhole.format(thisMonthRevenue) : "£0"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-[var(--color-text-muted)]">
+                    All time
+                  </p>
+                  <p className="text-2xl font-bold text-[var(--color-text)]">
+                    {allTimeRevenue > 0 ? formatGbpWhole.format(allTimeRevenue) : "£0"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-[var(--color-text-muted)]">
+                    Avg / session
+                  </p>
+                  <p className="text-2xl font-bold text-[var(--color-text)]">
+                    {avgPerSession > 0 ? formatGbpWhole.format(avgPerSession) : "£0"}
+                  </p>
+                </div>
+              </div>
+
+              <p className="mb-3 text-xs uppercase tracking-wider text-[var(--color-text-muted)]">
+                RECENT PAYOUTS
+              </p>
+              {recentCompletedBookings.length === 0 ? (
+                <p className="text-sm text-[var(--color-text-muted)]">No payouts yet.</p>
+              ) : (
+                <ul>
+                  {recentCompletedBookings.map((booking) => {
+                    const amount =
+                      typeof booking.total_amount === "number"
+                        ? booking.total_amount
+                        : Number(booking.total_amount);
+                    const dateLabel = booking.completed_at
+                      ? new Date(booking.completed_at).toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : "Unknown date";
+                    return (
                       <li
-                        key={t.id}
-                        className="flex items-center justify-between gap-3 rounded-lg border border-zinc-100 bg-zinc-50/80 px-3 py-2.5 text-sm dark:border-zinc-800 dark:bg-zinc-800/40"
+                        key={`${booking.completed_at}-${booking.total_amount}`}
+                        className="flex items-center justify-between border-b border-[var(--color-border)] py-2 last:border-0"
                       >
-                        <time
-                          dateTime={new Date(t.created * 1000).toISOString()}
-                          className="text-zinc-600 dark:text-zinc-400"
-                        >
-                          {new Date(t.created * 1000).toLocaleDateString(
-                            "en-GB",
-                            {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            },
-                          )}
-                        </time>
-                        <span className="font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
-                          {formatGbp(t.amountPence / 100)}
+                        <span className="text-sm text-[var(--color-text-muted)]">
+                          {dateLabel}
+                        </span>
+                        <span className="text-sm font-semibold text-[var(--color-text)]">
+                          {Number.isFinite(amount) ? formatGbp(amount) : "£0.00"}
                         </span>
                       </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+                    );
+                  })}
+                </ul>
+              )}
             </>
-          ) : null}
+          )}
         </section>
 
-          <section className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-            Your stats
-          </h2>
-          <dl className="mt-4 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-xl border border-zinc-100 bg-zinc-50/80 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-800/40">
-              <dt className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                Sessions completed
-              </dt>
-              <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
-                {sessionsCompleted ?? 0}
-              </dd>
+        <section className="mt-6 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-sm)]">
+          <h2 className="text-xl font-bold text-[var(--color-text)]">Settings</h2>
+          <p className="mb-4 text-sm text-[var(--color-text-muted)]">
+            Your profile, availability, and services
+          </p>
+
+          <div className="flex items-center justify-between border-b border-[var(--color-border)] py-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-[var(--color-text)]">Profile</p>
+              <p className="truncate text-xs text-[var(--color-text-muted)]">{bioSummary}</p>
             </div>
-            <div className="rounded-xl border border-zinc-100 bg-zinc-50/80 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-800/40">
-              <dt className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                Average rating
-              </dt>
-              <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
-                {avgRating != null && !Number.isNaN(avgRating)
-                  ? avgRating.toFixed(1)
-                  : "—"}
-                {avgRating != null && !Number.isNaN(avgRating) ? (
-                  <span className="text-lg text-amber-500"> ★</span>
-                ) : null}
-              </dd>
+            <Link href="/expert/setup" className="text-sm text-[var(--color-accent)] hover:underline">
+              Edit →
+            </Link>
+          </div>
+
+          <div className="flex items-center justify-between border-b border-[var(--color-border)] py-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-[var(--color-text)]">Availability</p>
+              <p className="truncate text-xs text-[var(--color-text-muted)]">{activeDaysSummary}</p>
             </div>
-            <div className="rounded-xl border border-zinc-100 bg-zinc-50/80 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-800/40">
-              <dt className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                Reviews
-              </dt>
-              <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
-                {reviewCount}
-              </dd>
+            <Link href="/expert/availability" className="text-sm text-[var(--color-accent)] hover:underline">
+              Edit →
+            </Link>
+          </div>
+
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-medium text-[var(--color-text)]">Services</p>
+              <p className="text-xs text-[var(--color-text-muted)]">
+                {activeServicesCount > 0
+                  ? `${activeServicesCount} active services`
+                  : "No services added yet."}
+              </p>
             </div>
-          </dl>
+            <Link href="/expert/setup" className="text-sm text-[var(--color-accent)] hover:underline">
+              Edit →
+            </Link>
+          </div>
         </section>
-        </div>
       </main>
     </div>
   );

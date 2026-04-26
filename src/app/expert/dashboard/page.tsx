@@ -330,14 +330,14 @@ export default async function ExpertDashboardPage() {
               messagingBookings={messagingBookings}
               hasUnreadMessages={false}
             />
-          </div>
-          <div className="mt-3 text-right">
-            <Link
-              href="/expert/bookings"
-              className="text-sm text-[var(--color-accent)] hover:underline"
-            >
-              View all bookings →
-            </Link>
+            <div className="border-t border-[var(--color-border)] px-4 pb-1 pt-3 text-right">
+              <Link
+                href="/expert/bookings"
+                className="text-sm text-[var(--color-accent)] hover:underline"
+              >
+                View all bookings →
+              </Link>
+            </div>
           </div>
         </section>
 

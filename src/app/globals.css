@@ -3,6 +3,40 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Backgrounds */
+  --color-bg: #f7f6f3;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+
+  /* Borders */
+  --color-border: #e4e1db;
+  --color-border-strong: #ccc8c0;
+
+  /* Text */
+  --color-text: #1a1917;
+  --color-text-muted: #706d66;
+  --color-text-placeholder: #a8a49d;
+
+  /* Accent (Sensei red) */
+  --color-accent: #e03131;
+  --color-accent-hover: #c92a2a;
+  --color-accent-light: #fff5f5;
+  --color-accent-text: #c92a2a;
+
+  /* Sensei dark navbar */
+  --color-navbar-dark: #1a1917;
+  --color-navbar-dark-text: #ffffff;
+  --color-navbar-dark-muted: rgba(255,255,255,0.6);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
 }
 
 @theme inline {
@@ -22,5 +56,5 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, sans-serif;
 }

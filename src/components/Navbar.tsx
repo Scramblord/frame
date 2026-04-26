@@ -9,7 +9,9 @@ export default async function Navbar() {
   const headerStore = await headers();
   const pathname =
     headerStore.get("x-pathname") ?? headerStore.get("next-url") ?? "";
-  const darkNav = pathname === "/expert" || pathname.startsWith("/expert/");
+  const isSenseiPath =
+    pathname.includes("/expert/") || pathname.endsWith("/expert");
+  const darkNav = isSenseiPath;
 
   const supabase = await createClient();
   const {
@@ -53,7 +55,7 @@ export default async function Navbar() {
       <header
         id="frame-navbar"
         data-expert-mode="false"
-        className="border-b border-zinc-200/80 bg-white/90 shadow-sm backdrop-blur transition-colors dark:border-zinc-800 dark:bg-zinc-950/90 data-[expert-mode=true]:border-zinc-700/90 data-[expert-mode=true]:bg-gray-900 data-[expert-mode=true]:[&_a]:text-zinc-200 data-[expert-mode=true]:[&_a:hover]:text-white data-[expert-mode=true]:[&_nav_a]:rounded-full data-[expert-mode=true]:[&_nav_a]:px-3 data-[expert-mode=true]:[&_nav_a]:py-2 data-[expert-mode=true]:[&_nav_a]:!text-zinc-200 data-[expert-mode=true]:[&_nav_a:hover]:!bg-white/10 data-[expert-mode=true]:[&_nav_a:hover]:!text-white data-[expert-mode=true]:[&_nav_a[data-active='true']]:bg-white/10 data-[expert-mode=true]:[&_nav_a[data-active='true']]:!text-white data-[expert-mode=true]:[&_.sensei-wordmark-light]:hidden data-[expert-mode=true]:[&_.sensei-wordmark-dark]:block"
+        className="border-b border-zinc-200/80 bg-white/90 shadow-sm backdrop-blur transition-colors dark:border-zinc-800 dark:bg-zinc-950/90 [&_[role='menu']_a]:hidden [&_[role='menu']_div[class*='h-px']]:hidden data-[expert-mode=true]:border-zinc-700/90 data-[expert-mode=true]:bg-gray-900 data-[expert-mode=true]:[&_a]:text-zinc-200 data-[expert-mode=true]:[&_a:hover]:text-white data-[expert-mode=true]:[&_nav_a]:rounded-full data-[expert-mode=true]:[&_nav_a]:px-3 data-[expert-mode=true]:[&_nav_a]:py-2 data-[expert-mode=true]:[&_nav_a]:!text-zinc-200 data-[expert-mode=true]:[&_nav_a:hover]:!bg-white/10 data-[expert-mode=true]:[&_nav_a:hover]:!text-white data-[expert-mode=true]:[&_nav_a[data-active='true']]:bg-white/10 data-[expert-mode=true]:[&_nav_a[data-active='true']]:!text-white data-[expert-mode=true]:[&_.sensei-wordmark-light]:hidden data-[expert-mode=true]:[&_.sensei-wordmark-dark]:block"
       >
         <div className="mx-auto max-w-5xl px-4 py-3 sm:px-6">
           <div className="flex items-center justify-between gap-3">
@@ -95,7 +97,9 @@ export default async function Navbar() {
                   <Link
                     href="/dashboard"
                     className={`transition hover:opacity-80 ${
-                      !darkNav ? "font-semibold underline underline-offset-4" : ""
+                      isSenseiPath
+                        ? ""
+                        : "font-semibold underline underline-offset-4"
                     }`}
                   >
                     Student
@@ -103,7 +107,9 @@ export default async function Navbar() {
                   <Link
                     href={hasExpertProfile ? "/expert/dashboard" : "/expert/setup"}
                     className={`transition hover:opacity-80 ${
-                      darkNav ? "font-semibold underline underline-offset-4" : ""
+                      isSenseiPath
+                        ? "font-semibold underline underline-offset-4"
+                        : ""
                     }`}
                   >
                     Sensei

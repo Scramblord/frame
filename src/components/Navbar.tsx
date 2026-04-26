@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import NavbarCenter from "@/components/NavbarCenter";
 import NavbarClient from "@/components/NavbarClient";
 import BecomeExpertBanner from "@/components/BecomeExpertBanner";
 import NavModeLinks from "@/components/NavModeLinks";
@@ -49,53 +48,46 @@ export default async function Navbar() {
       <header
         id="frame-navbar"
         data-expert-mode="false"
-        className="border-b border-zinc-200/80 bg-white/90 shadow-sm backdrop-blur transition-colors dark:border-zinc-800 dark:bg-zinc-950/90 data-[expert-mode=true]:border-zinc-700/90 data-[expert-mode=true]:bg-gray-900 data-[expert-mode=true]:[&_a]:text-zinc-200 data-[expert-mode=true]:[&_a:hover]:text-white data-[expert-mode=true]:[&_nav_a]:rounded-full data-[expert-mode=true]:[&_nav_a]:px-3 data-[expert-mode=true]:[&_nav_a]:py-2 data-[expert-mode=true]:[&_nav_a]:!text-zinc-200 data-[expert-mode=true]:[&_nav_a:hover]:!bg-white/10 data-[expert-mode=true]:[&_nav_a:hover]:!text-white data-[expert-mode=true]:[&_nav_a[data-active='true']]:bg-white/10 data-[expert-mode=true]:[&_nav_a[data-active='true']]:!text-white data-[expert-mode=true]:[&_.sensei-wordmark-light]:hidden data-[expert-mode=true]:[&_.sensei-wordmark-dark]:block"
+        className="border-b border-[var(--color-border)] bg-white text-sm transition-colors [&_.sensei-wordmark-dark]:hidden [&_[id='frame-navbar-home-link']]:text-[var(--color-text)] data-[expert-mode=true]:border-transparent data-[expert-mode=true]:bg-[var(--color-navbar-dark)] data-[expert-mode=true]:[&_.sensei-wordmark-light]:hidden data-[expert-mode=true]:[&_.sensei-wordmark-dark]:block data-[expert-mode=true]:[&_[id='frame-navbar-home-link']]:text-[var(--color-navbar-dark-text)]"
       >
-        <div className="mx-auto max-w-5xl px-4 py-3 sm:px-6">
-          <div className="flex items-center justify-between gap-3">
-            <Link
-              id="frame-navbar-home-link"
-              href="/"
-              className="flex shrink-0 items-center gap-2 text-zinc-900 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:text-zinc-50 dark:focus-visible:ring-zinc-500/70 dark:focus-visible:ring-offset-zinc-950"
-            >
-              <img
-                src="/Asset 4@3x.png"
-                alt=""
-                className="h-8 w-auto shrink-0"
-                width={32}
-                height={32}
-              />
-              <img
-                src="/Asset 5@3x.png"
-                alt="Sensei"
-                className="sensei-wordmark-light h-5 w-auto shrink-0"
-                width={132}
-                height={20}
-              />
-              <img
-                src="/Asset 6@3x.png"
-                alt="Sensei"
-                className="sensei-wordmark-dark hidden h-5 w-auto shrink-0"
-                width={132}
-                height={20}
-              />
-            </Link>
-
-            <NavbarCenter
-              signedIn={!!user}
+        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
+          <Link
+            id="frame-navbar-home-link"
+            href="/dashboard"
+            className="flex shrink-0 items-center gap-2 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+          >
+            <img
+              src="/Asset 4@3x.png"
+              alt=""
+              className="h-8 w-auto shrink-0"
+              width={32}
+              height={32}
             />
+            <img
+              src="/Asset 5@3x.png"
+              alt="Sensei"
+              className="sensei-wordmark-light h-5 w-auto shrink-0"
+              width={132}
+              height={20}
+            />
+            <img
+              src="/Asset 6@3x.png"
+              alt="Sensei"
+              className="sensei-wordmark-dark hidden h-5 w-auto shrink-0"
+              width={132}
+              height={20}
+            />
+          </Link>
 
-            <div className="flex shrink-0 items-center justify-end">
-              {user ? <NavModeLinks senseiHref={senseiHref} /> : null}
-              <NavbarClient
-                signedIn={!!user}
-                fullName={profile?.full_name ?? null}
-                initials={initials}
-                avatarUrl={profile?.avatar_url ?? null}
-              />
-            </div>
+          <div className="flex shrink-0 items-center justify-end">
+            {user ? <NavModeLinks senseiHref={senseiHref} /> : null}
+            <NavbarClient
+              signedIn={!!user}
+              fullName={profile?.full_name ?? null}
+              initials={initials}
+              avatarUrl={profile?.avatar_url ?? null}
+            />
           </div>
-          <NavbarCenter signedIn={!!user} mobile />
         </div>
       </header>
       <BecomeExpertBanner

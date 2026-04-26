@@ -1,34 +1,41 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 type NavModeLinksProps = {
   senseiHref: string;
 };
 
 export default function NavModeLinks({ senseiHref }: NavModeLinksProps) {
+  const router = useRouter();
   const pathname = usePathname() ?? "";
   const isSenseiMode = pathname.startsWith("/expert");
+  const optionClass = "rounded-full px-4 py-1.5 text-sm font-medium transition";
 
   return (
-    <div className="mr-3 flex items-center gap-3 text-sm">
-      <Link
-        href="/dashboard"
-        className={`transition hover:opacity-80 ${
-          isSenseiMode ? "" : "font-semibold underline underline-offset-4"
+    <div className="mr-3 inline-flex rounded-full border border-[var(--color-border)] bg-transparent p-0.5">
+      <button
+        type="button"
+        onClick={() => router.push("/dashboard")}
+        className={`${optionClass} ${
+          isSenseiMode
+            ? "bg-transparent text-[var(--color-navbar-dark-muted)]"
+            : "bg-white text-[var(--color-text)]"
         }`}
       >
         Student
-      </Link>
-      <Link
-        href={senseiHref}
-        className={`transition hover:opacity-80 ${
-          isSenseiMode ? "font-semibold underline underline-offset-4" : ""
+      </button>
+      <button
+        type="button"
+        onClick={() => router.push(senseiHref)}
+        className={`${optionClass} ${
+          isSenseiMode
+            ? "bg-white text-[var(--color-navbar-dark)]"
+            : "bg-transparent text-[var(--color-text-muted)]"
         }`}
       >
         Sensei
-      </Link>
+      </button>
     </div>
   );
 }

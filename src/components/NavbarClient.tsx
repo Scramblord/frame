@@ -87,7 +87,7 @@ export default function NavbarClient({
   }
 
   const dropdownItemClass =
-    "flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 dark:focus-visible:ring-zinc-500/70 dark:focus-visible:ring-offset-zinc-900";
+    "flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium transition focus-visible:outline-none";
 
   return (
     <div className="flex items-center justify-end gap-2">
@@ -98,10 +98,10 @@ export default function NavbarClient({
             onClick={() => setOpen((prev) => !prev)}
             aria-expanded={open}
             aria-haspopup="menu"
-            className={`inline-flex h-10 items-center gap-2 rounded-xl border px-2.5 text-sm font-semibold shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-zinc-500/70 dark:focus-visible:ring-offset-zinc-950 sm:px-3 ${
+            className={`inline-flex h-10 items-center gap-2 rounded-xl border px-2.5 text-sm font-semibold transition focus-visible:outline-none sm:px-3 ${
               isExpertMode
-                ? "border-zinc-700/80 bg-zinc-800/70 text-white hover:border-zinc-500 hover:bg-zinc-800"
-                : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-800"
+                ? "border-white/20 bg-transparent text-[var(--color-navbar-dark-text)]"
+                : "border-[var(--color-border)] bg-white text-[var(--color-text)]"
             }`}
           >
             {avatarUrl ? (
@@ -116,8 +116,8 @@ export default function NavbarClient({
               <span
                 className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold ${
                   isExpertMode
-                    ? "bg-white text-zinc-900"
-                    : "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                    ? "bg-white text-[var(--color-navbar-dark)]"
+                    : "bg-[var(--color-text)] text-white"
                 }`}
               >
                 {initials ?? "?"}
@@ -129,7 +129,7 @@ export default function NavbarClient({
           </button>
 
           <div
-            className={`absolute right-0 z-50 mt-2 w-72 origin-top-right rounded-xl border border-zinc-200 bg-white p-2 shadow-lg ring-1 ring-zinc-900/5 transition duration-200 dark:border-zinc-700 dark:bg-zinc-900 dark:ring-zinc-100/10 ${
+            className={`absolute right-0 z-50 mt-2 w-72 origin-top-right rounded-xl border border-[var(--color-border)] bg-white p-2 text-sm shadow-[var(--shadow-md)] transition duration-200 ${
               open
                 ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
                 : "pointer-events-none -translate-y-1 scale-95 opacity-0"
@@ -152,19 +152,66 @@ export default function NavbarClient({
                 </span>
               )}
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                <p className="truncate text-sm font-semibold text-[var(--color-text)]">
                   {displayName}
                 </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {isExpertMode ? "Sensei Dashboard" : ""}
+                <p className="text-xs text-[var(--color-text-muted)]">
+                  {isExpertMode ? "Sensei" : "Student"}
                 </p>
               </div>
             </div>
 
-            <div className="my-2 h-px bg-zinc-200 dark:bg-zinc-700" />
+            <div className="my-2 h-px bg-[var(--color-border)]" />
+
+            {isExpertMode ? (
+              <>
+                <Link
+                  href="/expert/dashboard"
+                  onClick={closeMenu}
+                  className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  href="/expert/bookings"
+                  onClick={closeMenu}
+                  className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
+                >
+                  Bookings
+                </Link>
+                <Link
+                  href="/expert/availability"
+                  onClick={closeMenu}
+                  className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
+                >
+                  Availability
+                </Link>
+                <Link
+                  href="/expert/setup"
+                  onClick={closeMenu}
+                  className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
+                >
+                  Setup
+                </Link>
+              </>
+            ) : (
+              <Link
+                href="/bookings"
+                onClick={closeMenu}
+                className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
+              >
+                My Bookings
+              </Link>
+            )}
+
+            <div className="my-2 h-px bg-[var(--color-border)]" />
 
             <form action="/auth/signout" method="post">
-              <button type="submit" onClick={closeMenu} className={dropdownItemClass}>
+              <button
+                type="submit"
+                onClick={closeMenu}
+                className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
+              >
                 Sign out
               </button>
             </form>

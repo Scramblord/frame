@@ -421,6 +421,14 @@ export default async function ExpertDashboardPage() {
                   })}
                 </ul>
               )}
+              <div className="mt-3 text-right">
+                <Link
+                  href="/expert/earnings"
+                  className="text-sm text-[var(--color-accent)] hover:underline"
+                >
+                  View earnings →
+                </Link>
+              </div>
             </>
           )}
         </section>

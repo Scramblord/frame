@@ -180,6 +180,13 @@ export default function NavbarClient({
                   Bookings
                 </Link>
                 <Link
+                  href="/expert/earnings"
+                  onClick={closeMenu}
+                  className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
+                >
+                  Earnings
+                </Link>
+                <Link
                   href="/expert/availability"
                   onClick={closeMenu}
                   className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}

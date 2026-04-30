@@ -1,5 +1,4 @@
-import { ExpertBookingCard } from "@/components/ExpertBookingCard";
-import BookingTypeTabs from "@/app/expert/bookings/BookingTypeTabs";
+import BookingsView from "@/app/expert/bookings/BookingsView";
 import type { BookingListRow } from "@/lib/consumer-bookings";
 import { enrichBookingsForExpertCards } from "@/lib/expert-bookings";
 import { createClient } from "@/lib/supabase/server";
@@ -83,29 +82,6 @@ export default async function ExpertBookingsPage({ searchParams }: PageProps) {
     );
   }
 
-  const videoAudioBookings = cards.filter(
-    (card) =>
-      card.sessionType !== "messaging" &&
-      card.sessionType !== "urgent_messaging",
-  );
-  const messagingBookings = cards.filter(
-    (card) =>
-      card.sessionType === "messaging" ||
-      card.sessionType === "urgent_messaging",
-  );
-
-  const videoAudioBookingCards = videoAudioBookings.map((c) => (
-    <li key={c.bookingId} className="border-b border-[var(--color-border)] p-4 last:border-0">
-      <ExpertBookingCard {...c} />
-    </li>
-  ));
-
-  const messagingBookingCards = messagingBookings.map((c) => (
-    <li key={c.bookingId} className="border-b border-[var(--color-border)] p-4 last:border-0">
-      <ExpertBookingCard {...c} />
-    </li>
-  ));
-
   return (
     <main className="mx-auto min-h-screen w-full max-w-4xl flex-1 bg-[var(--color-bg)] px-4 pb-16 pt-10 sm:px-6">
       <Link
@@ -122,12 +98,12 @@ export default async function ExpertBookingsPage({ searchParams }: PageProps) {
         Sessions with your clients.
       </p>
 
-      <div className="mb-6 flex gap-0 border-b border-[var(--color-border)]">
+      <div className="mb-6 flex gap-0 overflow-x-auto border-b border-[var(--color-border)]">
         <Link
           href="/expert/bookings?tab=upcoming"
-          className={`text-sm font-medium ${
+          className={`text-sm ${
             tab === "upcoming"
-              ? "-mb-px border-b-2 border-[var(--color-accent)] px-4 pb-3 text-[var(--color-text)]"
+              ? "border-b-2 border-[var(--color-accent)] pb-3 px-4 text-[var(--color-text)]"
               : "px-4 pb-3 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
           }`}
         >
@@ -135,9 +111,9 @@ export default async function ExpertBookingsPage({ searchParams }: PageProps) {
         </Link>
         <Link
           href="/expert/bookings?tab=past"
-          className={`text-sm font-medium ${
+          className={`text-sm ${
             tab === "past"
-              ? "-mb-px border-b-2 border-[var(--color-accent)] px-4 pb-3 text-[var(--color-text)]"
+              ? "border-b-2 border-[var(--color-accent)] pb-3 px-4 text-[var(--color-text)]"
               : "px-4 pb-3 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
           }`}
         >
@@ -160,10 +136,7 @@ export default async function ExpertBookingsPage({ searchParams }: PageProps) {
           </Link>
         </div>
       ) : (
-        <BookingTypeTabs
-          videoAudioBookings={videoAudioBookingCards}
-          messagingBookings={messagingBookingCards}
-        />
+        <BookingsView allBookings={cards} isPast={tab === "past"} />
       )}
     </main>
   );

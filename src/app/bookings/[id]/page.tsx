@@ -149,7 +149,7 @@ export default async function BookingDetailPage({
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
-      <main className="mx-auto w-full max-w-lg flex-1 px-4 py-10 sm:px-6">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
       <Link
         href={backHref}
         className="mb-6 block text-sm text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text)]"

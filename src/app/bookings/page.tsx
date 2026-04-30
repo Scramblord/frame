@@ -1,19 +1,9 @@
-import { ConsumerBookingCard } from "@/components/ConsumerBookingCard";
-import BookingTypeTabs from "@/app/bookings/BookingTypeTabs";
-import {
-  formatBookingDateTime,
-  formatDurationMinutes,
-  formatStatusLabel,
-  sessionTypeIcon,
-  sessionTypeLabel,
-  statusBadgeStyles,
-} from "@/lib/booking-display";
+import BookingsView from "@/app/bookings/BookingsView";
 import {
   enrichBookingsForConsumerCards,
   type BookingListRow,
 } from "@/lib/consumer-bookings";
 import { createClient } from "@/lib/supabase/server";
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import Script from "next/script";
@@ -105,115 +95,6 @@ export default async function ConsumerBookingsPage({ searchParams }: PageProps) 
     );
   }
 
-  const videoAudioBookings = cards.filter(
-    (card) =>
-      card.sessionType !== "messaging" &&
-      card.sessionType !== "urgent_messaging",
-  );
-  const messagingBookings = cards.filter(
-    (card) =>
-      card.sessionType === "messaging" ||
-      card.sessionType === "urgent_messaging",
-  );
-
-  const renderBookingListItem = (
-    c: (typeof cards)[number],
-  ) =>
-    c.status === "pending_payment" ? (
-      <li key={c.bookingId} className="border-b border-[var(--color-border)] p-4 last:border-0">
-        <div>
-          <Link href={`/bookings/${c.bookingId}`} className="block">
-            <div className="flex gap-4">
-              <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800">
-                {c.expertAvatarUrl ? (
-                  <Image
-                    src={c.expertAvatarUrl}
-                    alt=""
-                    fill
-                    className="object-cover"
-                    sizes="56px"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-zinc-500 dark:text-zinc-400">
-                    {c.expertInitials}
-                  </div>
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <p className="font-semibold text-zinc-900 dark:text-zinc-50">
-                    {c.expertName}
-                  </p>
-                  <span
-                    className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusBadgeStyles(c.status)}`}
-                  >
-                    {(
-                      (c.sessionType === "messaging" ||
-                        c.sessionType === "urgent_messaging") &&
-                      String(c.status) === "confirmed"
-                        ? "Awaiting reply"
-                        : formatStatusLabel(c.status)
-                    )}
-                  </span>
-                </div>
-                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                  {c.serviceName}
-                </p>
-                <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300">
-                  <span className="mr-1.5" aria-hidden>
-                    {sessionTypeIcon(c.sessionType)}
-                  </span>
-                  {sessionTypeLabel(c.sessionType)}
-                </p>
-                {c.scheduledAt ? (
-                  <p className="mt-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                    {formatBookingDateTime(c.scheduledAt)}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                    {c.sessionType === "messaging" ||
-                    c.sessionType === "urgent_messaging"
-                      ? "Messaging session"
-                      : "Time to be arranged"}
-                  </p>
-                )}
-                <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-                  {formatDurationMinutes(c.durationMinutes)}
-                </p>
-              </div>
-            </div>
-          </Link>
-          <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
-            <p>
-              Payment incomplete — this slot will be released in 15
-              minutes if payment is not completed.
-            </p>
-            <div className="mt-3 flex items-center gap-3">
-              <button
-                type="button"
-                className="resume-payment-btn rounded-lg bg-amber-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-amber-500 dark:hover:bg-amber-400"
-                data-booking-id={c.bookingId}
-                data-default-label="Complete payment"
-              >
-                Complete payment
-              </button>
-              <p
-                className="resume-payment-error hidden text-sm text-rose-700 dark:text-rose-300"
-                aria-live="polite"
-              />
-            </div>
-          </div>
-        </div>
-      </li>
-    ) : (
-      <li key={c.bookingId} className="border-b border-[var(--color-border)] p-4 last:border-0">
-        <ConsumerBookingCard {...c} />
-      </li>
-    );
-
-  const videoAudioBookingCards = videoAudioBookings.map(renderBookingListItem);
-  const messagingBookingCards = messagingBookings.map(renderBookingListItem);
-
   return (
     <main className="mx-auto min-h-screen w-full max-w-4xl flex-1 bg-[var(--color-bg)] px-4 pb-16 pt-10 sm:px-6">
       <Link
@@ -230,12 +111,12 @@ export default async function ConsumerBookingsPage({ searchParams }: PageProps) 
         Upcoming sessions and your history.
       </p>
 
-      <div className="mb-6 flex gap-0 border-b border-[var(--color-border)]">
+      <div className="mb-6 flex gap-0 overflow-x-auto border-b border-[var(--color-border)]">
         <Link
           href="/bookings?tab=upcoming"
-          className={`text-sm font-medium ${
+          className={`text-sm ${
             tab === "upcoming"
-              ? "-mb-px border-b-2 border-[var(--color-accent)] px-4 pb-3 text-[var(--color-text)]"
+              ? "border-b-2 border-[var(--color-accent)] pb-3 px-4 text-[var(--color-text)]"
               : "px-4 pb-3 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
           }`}
         >
@@ -243,9 +124,9 @@ export default async function ConsumerBookingsPage({ searchParams }: PageProps) 
         </Link>
         <Link
           href="/bookings?tab=past"
-          className={`text-sm font-medium ${
+          className={`text-sm ${
             tab === "past"
-              ? "-mb-px border-b-2 border-[var(--color-accent)] px-4 pb-3 text-[var(--color-text)]"
+              ? "border-b-2 border-[var(--color-accent)] pb-3 px-4 text-[var(--color-text)]"
               : "px-4 pb-3 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
           }`}
         >
@@ -270,10 +151,7 @@ export default async function ConsumerBookingsPage({ searchParams }: PageProps) 
           ) : null}
         </div>
       ) : (
-        <BookingTypeTabs
-          videoAudioBookings={videoAudioBookingCards}
-          messagingBookings={messagingBookingCards}
-        />
+        <BookingsView allBookings={cards} isPast={tab === "past"} />
       )}
       <Script
         id="resume-payment-handler"

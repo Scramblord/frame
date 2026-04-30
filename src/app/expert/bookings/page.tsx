@@ -1,5 +1,5 @@
 import { ExpertBookingCard } from "@/components/ExpertBookingCard";
-import { PastBookingsFilteredList } from "@/components/PastBookingsFilteredList";
+import BookingTypeTabs from "@/app/expert/bookings/BookingTypeTabs";
 import type { BookingListRow } from "@/lib/consumer-bookings";
 import { enrichBookingsForExpertCards } from "@/lib/expert-bookings";
 import { createClient } from "@/lib/supabase/server";
@@ -83,6 +83,29 @@ export default async function ExpertBookingsPage({ searchParams }: PageProps) {
     );
   }
 
+  const videoAudioBookings = cards.filter(
+    (card) =>
+      card.sessionType !== "messaging" &&
+      card.sessionType !== "urgent_messaging",
+  );
+  const messagingBookings = cards.filter(
+    (card) =>
+      card.sessionType === "messaging" ||
+      card.sessionType === "urgent_messaging",
+  );
+
+  const videoAudioBookingCards = videoAudioBookings.map((c) => (
+    <li key={c.bookingId} className="border-b border-[var(--color-border)] p-4 last:border-0">
+      <ExpertBookingCard {...c} />
+    </li>
+  ));
+
+  const messagingBookingCards = messagingBookings.map((c) => (
+    <li key={c.bookingId} className="border-b border-[var(--color-border)] p-4 last:border-0">
+      <ExpertBookingCard {...c} />
+    </li>
+  ));
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-4xl flex-1 bg-[var(--color-bg)] px-4 pb-16 pt-10 sm:px-6">
       <Link
@@ -136,17 +159,12 @@ export default async function ExpertBookingsPage({ searchParams }: PageProps) {
             View dashboard
           </Link>
         </div>
-      ) : tab === "past" ? (
-        <PastBookingsFilteredList variant="expert" cards={cards} />
       ) : (
         <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
-          <ul>
-            {cards.map((c) => (
-              <li key={c.bookingId} className="border-b border-[var(--color-border)] p-4 last:border-0">
-                <ExpertBookingCard {...c} />
-              </li>
-            ))}
-          </ul>
+          <BookingTypeTabs
+            videoAudioBookings={videoAudioBookingCards}
+            messagingBookings={messagingBookingCards}
+          />
         </div>
       )}
     </main>

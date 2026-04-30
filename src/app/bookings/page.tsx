@@ -270,12 +270,10 @@ export default async function ConsumerBookingsPage({ searchParams }: PageProps) 
           ) : null}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
-          <BookingTypeTabs
-            videoAudioBookings={videoAudioBookingCards}
-            messagingBookings={messagingBookingCards}
-          />
-        </div>
+        <BookingTypeTabs
+          videoAudioBookings={videoAudioBookingCards}
+          messagingBookings={messagingBookingCards}
+        />
       )}
       <Script
         id="resume-payment-handler"

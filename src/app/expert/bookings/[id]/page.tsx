@@ -6,7 +6,6 @@ import {
   formatStatusLabel,
   sessionTypeIcon,
   sessionTypeLabel,
-  statusBadgeStyles,
 } from "@/lib/booking-display";
 import { formatGbp } from "@/lib/experts-marketplace";
 import { canShowJoinSession } from "@/lib/session-access";
@@ -26,6 +25,14 @@ function within15MinutesBeforeStart(scheduledAt: string | null): boolean {
   const start = new Date(scheduledAt).getTime();
   const now = Date.now();
   return now >= start - 15 * 60 * 1000 && now < start;
+}
+
+function statusBadgeClass(status: string): string {
+  if (status === "completed") return "bg-green-100 text-green-700";
+  if (status === "confirmed") return "bg-blue-100 text-blue-700";
+  if (status === "in_progress") return "bg-amber-100 text-amber-700";
+  if (status === "cancelled") return "bg-zinc-100 text-zinc-600";
+  return "bg-zinc-100 text-zinc-600";
 }
 
 export default async function ExpertBookingDetailPage({ params }: PageProps) {
@@ -146,15 +153,16 @@ export default async function ExpertBookingDetailPage({ params }: PageProps) {
       : formatStatusLabel(booking.status);
 
   return (
-    <main className="mx-auto w-full max-w-lg flex-1 px-4 py-8 sm:px-6 sm:py-10">
+    <div className="min-h-screen bg-[var(--color-bg)]">
+      <main className="mx-auto w-full max-w-lg flex-1 px-4 py-10 sm:px-6">
       <Link
         href="/expert/bookings"
-        className="text-sm font-medium text-zinc-600 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
+        className="mb-6 block text-sm text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text)]"
       >
         ← Back to bookings
       </Link>
 
-      <div className="mt-8 flex items-center gap-4 rounded-2xl border border-zinc-200/80 bg-white p-4 dark:border-zinc-700/80 dark:bg-zinc-900">
+      <div className="mt-8 flex items-center gap-4 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800">
           {consumerProfile?.avatar_url ? (
             <Image
@@ -195,7 +203,7 @@ export default async function ExpertBookingDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      <h1 className="mt-8 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+      <h1 className="mb-6 mt-8 text-3xl font-bold tracking-tight text-[var(--color-text)]">
         Booking details
       </h1>
 
@@ -203,7 +211,7 @@ export default async function ExpertBookingDetailPage({ params }: PageProps) {
         <div className="mt-8">
           <Link
             href={`/messages/${booking.id}`}
-            className="flex w-full items-center justify-center rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="flex w-full items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
           >
             {booking.status === "completed"
               ? "View conversation"
@@ -213,14 +221,14 @@ export default async function ExpertBookingDetailPage({ params }: PageProps) {
       ) : null}
 
       {!hideJoinSession || canCancel ? (
-        <div className="mt-8 space-y-3 rounded-2xl border border-zinc-200/80 bg-white p-5 dark:border-zinc-700/80 dark:bg-zinc-900">
+        <div className="mt-8 space-y-3 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
           {!hideJoinSession ? (
             <div>
               {isMessagingSession ? (
                 showMessagingConversation ? (
                   <Link
                     href={`/messages/${booking.id}`}
-                    className="flex w-full items-center justify-center rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                    className="flex w-full items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
                   >
                     Go to conversation
                   </Link>
@@ -228,7 +236,7 @@ export default async function ExpertBookingDetailPage({ params }: PageProps) {
               ) : showAvSession && joinActive ? (
                 <Link
                   href={`/session/${booking.id}`}
-                  className="flex w-full items-center justify-center rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                  className="flex w-full items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
                 >
                   Join session
                 </Link>
@@ -236,7 +244,7 @@ export default async function ExpertBookingDetailPage({ params }: PageProps) {
                 <button
                   type="button"
                   disabled
-                  className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white opacity-60 dark:bg-zinc-100 dark:text-zinc-900"
+                  className="w-full rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-white opacity-60"
                 >
                   Join session
                 </button>
@@ -270,27 +278,27 @@ export default async function ExpertBookingDetailPage({ params }: PageProps) {
         </div>
       ) : null}
 
-      <section className="mt-8 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
+      <section className="mt-8 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-sm)]">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
             Summary
           </h2>
           <span
-            className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusBadgeStyles(booking.status)}`}
+            className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass(booking.status)}`}
           >
             {statusLabel}
           </span>
         </div>
         <dl className="space-y-3 text-sm">
           <div className="flex justify-between gap-4">
-            <dt className="text-zinc-500">Service</dt>
-            <dd className="text-right text-zinc-900 dark:text-zinc-50">
+            <dt className="text-sm text-[var(--color-text-muted)]">Service</dt>
+            <dd className="text-right text-sm font-medium text-[var(--color-text)]">
               {serviceName}
             </dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-zinc-500">Session</dt>
-            <dd className="text-zinc-900 dark:text-zinc-50">
+            <dt className="text-sm text-[var(--color-text-muted)]">Session</dt>
+            <dd className="text-sm font-medium text-[var(--color-text)]">
               <span className="mr-1" aria-hidden>
                 {sessionTypeIcon(booking.session_type)}
               </span>
@@ -299,23 +307,23 @@ export default async function ExpertBookingDetailPage({ params }: PageProps) {
           </div>
           {booking.scheduled_at ? (
             <div className="flex justify-between gap-4">
-              <dt className="text-zinc-500">When</dt>
-              <dd className="text-right text-zinc-900 dark:text-zinc-50">
+              <dt className="text-sm text-[var(--color-text-muted)]">When</dt>
+              <dd className="text-right text-sm font-medium text-[var(--color-text)]">
                 {formatBookingDateTime(booking.scheduled_at)}
               </dd>
             </div>
           ) : null}
           {booking.duration_minutes != null ? (
             <div className="flex justify-between gap-4">
-              <dt className="text-zinc-500">Duration</dt>
-              <dd className="text-zinc-900 dark:text-zinc-50">
+              <dt className="text-sm text-[var(--color-text-muted)]">Duration</dt>
+              <dd className="text-sm font-medium text-[var(--color-text)]">
                 {formatDurationMinutes(booking.duration_minutes)}
               </dd>
             </div>
           ) : null}
           <div className="flex justify-between gap-4 border-t border-zinc-100 pt-3 dark:border-zinc-800">
-            <dt className="text-zinc-500">Amount</dt>
-            <dd className="font-semibold text-zinc-900 dark:text-zinc-50">
+            <dt className="text-sm text-[var(--color-text-muted)]">Amount</dt>
+            <dd className="text-sm font-semibold text-[var(--color-text)]">
               {Number.isFinite(total) ? formatGbp(total) : "—"}
             </dd>
           </div>
@@ -337,6 +345,7 @@ export default async function ExpertBookingDetailPage({ params }: PageProps) {
             : null
         }
       />
-    </main>
+      </main>
+    </div>
   );
 }

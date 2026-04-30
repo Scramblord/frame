@@ -160,12 +160,10 @@ export default async function ExpertBookingsPage({ searchParams }: PageProps) {
           </Link>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
-          <BookingTypeTabs
-            videoAudioBookings={videoAudioBookingCards}
-            messagingBookings={messagingBookingCards}
-          />
-        </div>
+        <BookingTypeTabs
+          videoAudioBookings={videoAudioBookingCards}
+          messagingBookings={messagingBookingCards}
+        />
       )}
     </main>
   );

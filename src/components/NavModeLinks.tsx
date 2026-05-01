@@ -9,7 +9,7 @@ type NavModeLinksProps = {
 export default function NavModeLinks({ senseiHref }: NavModeLinksProps) {
   const router = useRouter();
   const pathname = usePathname() ?? "";
-  const isSenseiMode = pathname.startsWith("/expert");
+  const isSenseiMode = pathname === "/expert" || pathname.startsWith("/expert/");
   const optionClass =
     "rounded-full px-4 py-1.5 text-sm font-medium transition-colors duration-150 transition-all duration-200";
 

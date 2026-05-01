@@ -83,7 +83,8 @@ export default async function ExpertBookingsPage({ searchParams }: PageProps) {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-4xl flex-1 bg-[var(--color-bg)] px-4 pb-16 pt-10 sm:px-6">
+    <div className="min-h-screen w-full bg-[var(--color-bg)]">
+      <main className="mx-auto w-full max-w-4xl flex-1 px-4 pb-16 pt-10 sm:px-6">
       <Link
         href="/expert/dashboard"
         className="mb-6 block text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
@@ -138,6 +139,7 @@ export default async function ExpertBookingsPage({ searchParams }: PageProps) {
       ) : (
         <BookingsView allBookings={cards} isPast={tab === "past"} />
       )}
-    </main>
+      </main>
+    </div>
   );
 }

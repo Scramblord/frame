@@ -60,7 +60,7 @@ export default async function DashboardPage() {
   const featuredExperts = await fetchExpertsWithProfiles(supabase);
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-[var(--color-bg)]">
+    <div className="flex min-h-screen w-full flex-1 flex-col bg-[var(--color-bg)]">
       <Navbar />
       <SyncSenseiModeOnMount senseiMode={false} />
       <ActiveSessionBanner />

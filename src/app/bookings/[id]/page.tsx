@@ -148,7 +148,7 @@ export default async function BookingDetailPage({
   const backHref = isConsumer ? "/bookings" : "/expert/bookings";
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)]">
+    <div className="min-h-screen w-full bg-[var(--color-bg)]">
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
       <Link
         href={backHref}

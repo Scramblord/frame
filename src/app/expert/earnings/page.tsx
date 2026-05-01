@@ -129,7 +129,7 @@ export default async function ExpertEarningsPage() {
   const fullName = profile.full_name?.trim() || "Sensei";
 
   return (
-    <div className="flex min-h-screen flex-1 flex-col bg-[var(--color-bg)]">
+    <div className="flex min-h-screen w-full flex-1 flex-col bg-[var(--color-bg)]">
       <Navbar />
       <SyncSenseiModeOnMount senseiMode />
       <ActiveSessionBanner />

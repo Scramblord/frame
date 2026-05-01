@@ -29,7 +29,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const experts = await fetchExpertsWithProfiles(supabase, trimmed);
 
   return (
-    <div className="min-h-screen flex-1 bg-[var(--color-bg)]">
+    <div className="min-h-screen w-full flex-1 bg-[var(--color-bg)]">
       <Navbar />
 
       <main className="mx-auto max-w-4xl px-4 pb-16 pt-10 sm:px-6">

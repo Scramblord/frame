@@ -249,7 +249,7 @@ export default async function ExpertDashboardPage() {
   const activeServicesCount = services.filter((s) => s.is_active !== false).length;
 
   return (
-    <div className="flex min-h-screen flex-1 flex-col bg-[var(--color-bg)]">
+    <div className="flex min-h-screen w-full flex-1 flex-col bg-[var(--color-bg)]">
       <Navbar />
       <SyncSenseiModeOnMount senseiMode />
       <ActiveSessionBanner />

@@ -37,7 +37,7 @@ function Stars({ rating }: { rating: number }) {
           className={`h-5 w-5 ${
             i <= filled
               ? "fill-amber-400 text-amber-400"
-              : "fill-zinc-200 text-zinc-200 dark:fill-zinc-600 dark:text-zinc-600"
+              : "fill-zinc-200 text-zinc-200"
           }`}
           viewBox="0 0 20 20"
           aria-hidden
@@ -179,328 +179,307 @@ export default async function ExpertPublicPage({ params }: PageProps) {
   }
 
   return (
-    <div className="min-h-full flex-1 bg-gradient-to-b from-zinc-100 to-zinc-200/90 dark:from-zinc-950 dark:to-zinc-900">
+    <div className="min-h-screen w-full bg-[var(--color-bg)]">
       <Navbar />
 
-      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
-        <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-xl shadow-zinc-900/5 dark:border-zinc-700/80 dark:bg-zinc-900 dark:shadow-black/40">
-          <div className="border-b border-zinc-100 bg-gradient-to-br from-zinc-50 to-white px-6 py-8 dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-950 sm:px-10 sm:py-10">
-            <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-10">
-              <div className="relative mx-auto h-28 w-28 shrink-0 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 shadow-inner dark:border-zinc-600 dark:bg-zinc-800 sm:mx-0">
+      <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
+        <section className="mb-6 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-sm)]">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_auto] md:items-start">
+            <div>
+              <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-700">
                 {profile.avatar_url ? (
                   <Image
                     src={profile.avatar_url}
                     alt=""
                     fill
                     className="object-cover"
-                    sizes="112px"
+                    sizes="72px"
                     priority
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center font-mono text-2xl font-semibold text-zinc-500 dark:text-zinc-400">
+                  <div className="flex h-full w-full items-center justify-center text-xl font-bold text-zinc-700">
                     {initials}
                   </div>
                 )}
               </div>
-              <div className="min-w-0 flex-1 text-center sm:text-left">
-                <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-3xl">
-                  {displayName}
-                </h1>
-                <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-zinc-600 dark:text-zinc-400 sm:justify-start">
-                  {profile.location ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <span aria-hidden>📍</span>
-                      {profile.location}
-                    </span>
-                  ) : null}
-                  {expert?.timezone ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <span aria-hidden>🕐</span>
-                      {expert.timezone}
-                    </span>
-                  ) : null}
-                </div>
-                <div className="mt-5 flex flex-wrap items-center justify-center gap-3 sm:justify-start">
-                  {avgRating != null && !Number.isNaN(avgRating) ? (
-                    <>
-                      <Stars rating={Math.min(5, Math.max(0, avgRating))} />
-                      <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                        {avgRating.toFixed(1)} · {reviewCount}{" "}
-                        {reviewCount === 1 ? "review" : "reviews"}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="text-sm text-zinc-500 dark:text-zinc-400">
-                      No reviews yet
-                    </span>
-                  )}
-                  {reliabilityPct != null ? (
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      {reliabilityPct}% reliability
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-10 px-6 py-8 sm:px-10 sm:py-10">
-            {!expert ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-100">
-                This Sensei has not published their full marketplace profile yet.
-                Booking options and details will appear after they complete Sensei
-                setup.
-              </div>
-            ) : null}
-
-            {expert?.bio ? (
-              <section>
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                  About
-                </h2>
-                <p className="mt-2 whitespace-pre-wrap text-zinc-700 dark:text-zinc-300">
-                  {expert.bio}
+              <h1 className="mt-3 text-2xl font-bold tracking-tight text-[var(--color-text)]">
+                {displayName}
+              </h1>
+              {profile.location || expert?.timezone ? (
+                <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+                  {[profile.location, expert?.timezone].filter(Boolean).join(" · ")}
                 </p>
-              </section>
-            ) : null}
-
-            {expert?.keywords && expert.keywords.length > 0 ? (
-              <section>
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                  Specialities
-                </h2>
-                <ul className="mt-3 flex flex-wrap gap-2">
-                  {expert.keywords.map((k: string) => (
+              ) : null}
+              {expert?.keywords && expert.keywords.length > 0 ? (
+                <ul className="mt-3 flex flex-wrap gap-1.5">
+                  {expert.keywords.slice(0, 5).map((k: string) => (
                     <li
                       key={k}
-                      className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200"
+                      className="rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-1 text-xs text-zinc-600"
                     >
                       {k}
                     </li>
                   ))}
                 </ul>
-              </section>
-            ) : null}
-
-            {expert ? (
-              <section>
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                  Availability
-                </h2>
-                {availabilitySummaryLines.length === 0 ? (
-                  <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                    No availability set yet.
-                  </p>
-                ) : (
-                  <>
-                    <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
-                      {availabilitySummaryLines.map((line) => (
-                        <li key={line}>{line}</li>
-                      ))}
-                    </ul>
-                    <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                      Times shown in {availabilityTzLabel}.
-                    </p>
-                  </>
-                )}
-              </section>
-            ) : null}
-
-            <section>
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                Services
-              </h2>
-              {!expert ? (
-                <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                  Services and pricing will be listed here once available.
-                </p>
-              ) : services.length === 0 ? (
-                <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                  This Sensei has not published any services yet.
+              ) : null}
+            </div>
+            <div className="md:justify-self-end">
+              {avgRating != null && !Number.isNaN(avgRating) ? (
+                <p className="text-lg font-bold text-[var(--color-text)]">
+                  ★ {avgRating.toFixed(1)}{" "}
+                  <span className="text-sm font-normal text-[var(--color-text-muted)]">
+                    ({reviewCount} {reviewCount === 1 ? "review" : "reviews"})
+                  </span>
                 </p>
               ) : (
-                <ul className="mt-4 space-y-8">
-                  {services.map((svc) => {
-                    const book = (type: "messaging" | "audio" | "video") =>
-                      `/book/${profile.id}/${svc.id}?type=${type}`;
-                    return (
-                      <li
-                        key={svc.id}
-                        className="rounded-2xl border border-zinc-200 bg-zinc-50/80 p-5 dark:border-zinc-700 dark:bg-zinc-800/40 sm:p-6"
-                      >
-                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                          {svc.name}
-                        </h3>
-                        {svc.description ? (
-                          <p className="mt-2 whitespace-pre-wrap text-sm text-zinc-600 dark:text-zinc-400">
-                            {svc.description}
-                          </p>
-                        ) : null}
-                        <p className="mt-3 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                          Session length:{" "}
-                          {formatSessionRange(
-                            svc.min_session_minutes,
-                            svc.max_session_minutes,
-                          )}
-                        </p>
-                        <ul className="mt-4 space-y-3">
-                          {svc.offers_messaging &&
-                          svc.messaging_flat_rate != null ? (
-                            <li className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-4 dark:border-zinc-600 dark:bg-zinc-900/60 sm:flex-row sm:items-center sm:justify-between">
-                              <div>
-                                <p className="font-medium text-zinc-900 dark:text-zinc-100">
-                                  Messaging
-                                </p>
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                  Live in-app messaging — flat fee per session
-                                </p>
-                                <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                                  {formatGbp(Number(svc.messaging_flat_rate))}
-                                </p>
-                              </div>
-                              <Link
-                                href={book("messaging")}
-                                className="inline-flex shrink-0 items-center justify-center rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                              >
-                                Book now
-                              </Link>
-                            </li>
-                          ) : null}
-                          {svc.offers_audio && svc.audio_hourly_rate != null ? (
-                            <li className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-4 dark:border-zinc-600 dark:bg-zinc-900/60 sm:flex-row sm:items-center sm:justify-between">
-                              <div>
-                                <p className="font-medium text-zinc-900 dark:text-zinc-100">
-                                  Audio
-                                </p>
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                  Voice sessions — per hour
-                                </p>
-                                <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                                  {formatGbp(Number(svc.audio_hourly_rate))}
-                                  <span className="text-sm font-normal text-zinc-500">
-                                    {" "}
-                                    / hr
-                                  </span>
-                                </p>
-                              </div>
-                              <Link
-                                href={book("audio")}
-                                className="inline-flex shrink-0 items-center justify-center rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                              >
-                                Book now
-                              </Link>
-                            </li>
-                          ) : null}
-                          {svc.offers_video && svc.video_hourly_rate != null ? (
-                            <li className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-4 dark:border-zinc-600 dark:bg-zinc-900/60 sm:flex-row sm:items-center sm:justify-between">
-                              <div>
-                                <p className="font-medium text-zinc-900 dark:text-zinc-100">
-                                  Video
-                                </p>
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                  Video calls — per hour
-                                </p>
-                                <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                                  {formatGbp(Number(svc.video_hourly_rate))}
-                                  <span className="text-sm font-normal text-zinc-500">
-                                    {" "}
-                                    / hr
-                                  </span>
-                                </p>
-                              </div>
-                              <Link
-                                href={book("video")}
-                                className="inline-flex shrink-0 items-center justify-center rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                              >
-                                Book now
-                              </Link>
-                            </li>
-                          ) : null}
-                        </ul>
-                      </li>
-                    );
-                  })}
-                </ul>
+                <p className="text-sm text-[var(--color-text-muted)]">No reviews yet</p>
               )}
-            </section>
-
-            <section>
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                Reviews
-              </h2>
-              {!reviewRows?.length ? (
-                <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
-                  No reviews yet.
+              {expert?.expert_sessions_kept != null ? (
+                <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+                  {expert.expert_sessions_kept} sessions completed
                 </p>
-              ) : (
-                <ul className="mt-4 space-y-5">
-                  {reviewRows.map((r) => {
-                    const rev = reviewerMap.get(r.reviewer_id);
-                    const rName = rev?.full_name?.trim() || "Client";
-                    const rFirst =
-                      rName.split(/\s+/).filter(Boolean)[0] ?? rName;
-                    const rInitials = rName
-                      .split(/\s+/)
-                      .map((w: string) => w[0])
-                      .join("")
-                      .slice(0, 2)
-                      .toUpperCase();
-                    return (
-                      <li
-                        key={r.id}
-                        className="rounded-xl border border-zinc-100 bg-zinc-50/50 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-800/30"
-                      >
-                        <div className="flex gap-3">
-                          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
-                            {rev?.avatar_url ? (
-                              <Image
-                                src={rev.avatar_url}
-                                alt=""
-                                fill
-                                className="object-cover"
-                                sizes="40px"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-zinc-600 dark:text-zinc-300">
-                                {rInitials}
-                              </div>
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                                {rFirst}
-                              </span>
-                              <Stars rating={r.rating} />
-                            </div>
-                            <time
-                              dateTime={r.created_at}
-                              className="text-xs text-zinc-500 dark:text-zinc-400"
-                            >
-                              {new Date(r.created_at).toLocaleDateString(
-                                "en-GB",
-                                {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                },
-                              )}
-                            </time>
-                            {r.comment ? (
-                              <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300">
-                                {r.comment}
-                              </p>
-                            ) : null}
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
+              ) : null}
+              {reliabilityPct != null ? (
+                <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+                  {reliabilityPct}% reliability
+                </p>
+              ) : null}
+            </div>
           </div>
-        </div>
+        </section>
+
+        {!expert ? (
+          <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-text-muted)] shadow-[var(--shadow-sm)]">
+            This Sensei has not published their full marketplace profile yet.
+            Booking options and details will appear after they complete Sensei
+            setup.
+          </div>
+        ) : null}
+
+        {expert?.bio ? (
+          <section className="mb-4 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)]">
+            <h2 className="mb-2 text-lg font-semibold text-[var(--color-text)]">
+              About
+            </h2>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--color-text-muted)]">
+              {expert.bio}
+            </p>
+          </section>
+        ) : null}
+
+        {expert ? (
+          <section className="mb-4 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)]">
+            <h2 className="text-lg font-semibold text-[var(--color-text)]">
+              Availability
+            </h2>
+            {availabilitySummaryLines.length === 0 ? (
+              <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+                No availability set.
+              </p>
+            ) : (
+              <>
+                <ul className="mt-3 space-y-2">
+                  {availabilitySummaryLines.map((line) => {
+                    const separatorIndex = line.indexOf(": ");
+                    const day =
+                      separatorIndex >= 0 ? line.slice(0, separatorIndex) : line;
+                    const range =
+                      separatorIndex >= 0
+                        ? line.slice(separatorIndex + 2)
+                        : "";
+                    return (
+                      <li key={line} className="flex items-start justify-between gap-4">
+                        <span className="text-sm font-medium text-[var(--color-text)]">
+                          {day}
+                        </span>
+                        <span className="text-sm text-[var(--color-text-muted)]">
+                          {range}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+                  Times shown in {availabilityTzLabel}.
+                </p>
+              </>
+            )}
+          </section>
+        ) : null}
+
+        <section>
+          <h2 className="mb-4 text-xl font-bold text-[var(--color-text)]">
+            Services
+          </h2>
+          {!expert ? (
+            <p className="mb-4 text-sm text-[var(--color-text-muted)]">
+              Services and pricing will be listed here once available.
+            </p>
+          ) : services.length === 0 ? (
+            <p className="mb-4 text-sm text-[var(--color-text-muted)]">
+              This Sensei has not published any services yet.
+            </p>
+          ) : (
+            <ul className="mb-6 space-y-4">
+              {services.map((svc) => {
+                const book = (type: "messaging" | "audio" | "video") =>
+                  `/book/${profile.id}/${svc.id}?type=${type}`;
+                return (
+                  <li
+                    key={svc.id}
+                    className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)]"
+                  >
+                    <h3 className="text-lg font-semibold text-[var(--color-text)]">
+                      {svc.name}
+                    </h3>
+                    {svc.description ? (
+                      <p className="mb-4 mt-1 whitespace-pre-wrap text-sm text-[var(--color-text-muted)]">
+                        {svc.description}
+                      </p>
+                    ) : null}
+                    <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                      Session length:{" "}
+                      {formatSessionRange(
+                        svc.min_session_minutes,
+                        svc.max_session_minutes,
+                      )}
+                    </p>
+                    <ul className="mt-2">
+                      {svc.offers_messaging &&
+                      svc.messaging_flat_rate != null ? (
+                        <li className="flex items-center justify-between border-t border-[var(--color-border)] py-3 first:border-0">
+                          <div>
+                            <p className="text-sm font-medium text-[var(--color-text)]">
+                              💬 Messaging
+                            </p>
+                            <p className="text-xs text-[var(--color-text-muted)]">
+                              {formatGbp(Number(svc.messaging_flat_rate))}
+                            </p>
+                          </div>
+                          <Link
+                            href={book("messaging")}
+                            className="inline-flex items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
+                          >
+                            Book now
+                          </Link>
+                        </li>
+                      ) : null}
+                      {svc.offers_audio && svc.audio_hourly_rate != null ? (
+                        <li className="flex items-center justify-between border-t border-[var(--color-border)] py-3 first:border-0">
+                          <div>
+                            <p className="text-sm font-medium text-[var(--color-text)]">
+                              🎙 Audio
+                            </p>
+                            <p className="text-xs text-[var(--color-text-muted)]">
+                              {formatGbp(Number(svc.audio_hourly_rate))} / hr
+                            </p>
+                          </div>
+                          <Link
+                            href={book("audio")}
+                            className="inline-flex items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
+                          >
+                            Book now
+                          </Link>
+                        </li>
+                      ) : null}
+                      {svc.offers_video && svc.video_hourly_rate != null ? (
+                        <li className="flex items-center justify-between border-t border-[var(--color-border)] py-3 first:border-0">
+                          <div>
+                            <p className="text-sm font-medium text-[var(--color-text)]">
+                              📹 Video
+                            </p>
+                            <p className="text-xs text-[var(--color-text-muted)]">
+                              {formatGbp(Number(svc.video_hourly_rate))} / hr
+                            </p>
+                          </div>
+                          <Link
+                            href={book("video")}
+                            className="inline-flex items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
+                          >
+                            Book now
+                          </Link>
+                        </li>
+                      ) : null}
+                    </ul>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-xl font-bold text-[var(--color-text)]">
+            Reviews
+          </h2>
+          {!reviewRows?.length ? (
+            <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] py-8 text-center text-sm text-[var(--color-text-muted)] shadow-[var(--shadow-sm)]">
+              No reviews yet.
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {reviewRows.map((r) => {
+                const rev = reviewerMap.get(r.reviewer_id);
+                const rName = rev?.full_name?.trim() || "Client";
+                const rFirst =
+                  rName.split(/\s+/).filter(Boolean)[0] ?? rName;
+                const rInitials = rName
+                  .split(/\s+/)
+                  .map((w: string) => w[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase();
+                return (
+                  <li
+                    key={r.id}
+                    className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-700">
+                          {rev?.avatar_url ? (
+                            <Image
+                              src={rev.avatar_url}
+                              alt=""
+                              fill
+                              className="object-cover"
+                              sizes="32px"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-zinc-700">
+                              {rInitials}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-sm font-medium text-[var(--color-text)]">
+                          {rFirst}
+                        </span>
+                      </div>
+                      <time
+                        dateTime={r.created_at}
+                        className="text-xs text-[var(--color-text-muted)]"
+                      >
+                        {new Date(r.created_at).toLocaleDateString("en-GB", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </time>
+                    </div>
+                    <div className="mt-1 text-sm text-amber-400">
+                      <Stars rating={r.rating} />
+                    </div>
+                    {r.comment ? (
+                      <p className="mt-2 text-sm leading-relaxed text-[var(--color-text-muted)]">
+                        {r.comment}
+                      </p>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
       </main>
     </div>
   );

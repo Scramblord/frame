@@ -1,3 +1,4 @@
+import { notifyBookingConfirmedEmails } from "@/lib/email";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe";
 import { NextResponse } from "next/server";
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
 
     try {
       const admin = createServiceRoleClient();
-      const { error: updErr } = await admin
+      const { data: updatedRows, error: updErr } = await admin
         .from("bookings")
         .update({
           status: "confirmed",
@@ -58,10 +59,19 @@ export async function POST(request: Request) {
             : {}),
         })
         .eq("id", bookingId)
-        .eq("status", "pending_payment");
+        .eq("status", "pending_payment")
+        .select("id");
 
       if (updErr) {
         console.error("Failed to confirm booking after PI succeeded", updErr);
+      } else if (updatedRows?.length) {
+        try {
+          void notifyBookingConfirmedEmails(bookingId).catch((e) =>
+            console.error("email error", e),
+          );
+        } catch (e) {
+          console.error("email error", e);
+        }
       }
     } catch (e) {
       console.error("Supabase admin client error (payment_intent)", e);
@@ -95,7 +105,7 @@ export async function POST(request: Request) {
 
     try {
       const admin = createServiceRoleClient();
-      const { error: updErr } = await admin
+      const { data: updatedRows, error: updErr } = await admin
         .from("bookings")
         .update({
           status: "confirmed",
@@ -103,10 +113,19 @@ export async function POST(request: Request) {
           expert_stripe_account_id: expertStripeAccountId,
         })
         .eq("id", bookingId)
-        .eq("status", "pending_payment");
+        .eq("status", "pending_payment")
+        .select("id");
 
       if (updErr) {
         console.error("Failed to update booking after payment", updErr);
+      } else if (updatedRows?.length) {
+        try {
+          void notifyBookingConfirmedEmails(bookingId).catch((e) =>
+            console.error("email error", e),
+          );
+        } catch (e) {
+          console.error("email error", e);
+        }
       }
     } catch (e) {
       console.error("Supabase admin client error", e);

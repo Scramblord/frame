@@ -1,4 +1,6 @@
 import { platformFeeFromTotal } from "@/lib/booking-pricing";
+import { formatGbpFromStripeAmount, getUserEmail, sendEmail } from "@/lib/email";
+import { payoutSent } from "@/lib/email-templates";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe";
 
@@ -218,6 +220,7 @@ export async function processBookingPayout(
 
   const booking = row as {
     id: string;
+    expert_user_id: string;
     total_amount: unknown;
     platform_fee: unknown;
     expert_stripe_account_id: string | null;
@@ -337,6 +340,41 @@ export async function processBookingPayout(
         "[frame:processBookingPayout] success update 0 rows (already processed?)",
         { bookingId },
       );
+    } else {
+      try {
+        if (transfer.id && transfer.amount > 0) {
+          const expertUserId = booking.expert_user_id;
+          void (async () => {
+            const expertEmail = await getUserEmail(expertUserId);
+            if (!expertEmail) {
+              return;
+            }
+            const profClient = createServiceRoleClient();
+            const { data: prof } = await profClient
+              .from("profiles")
+              .select("full_name")
+              .eq("user_id", expertUserId)
+              .maybeSingle();
+            const expertName =
+              typeof prof?.full_name === "string" && prof.full_name.trim() !== ""
+                ? prof.full_name.trim()
+                : "Sensei";
+            const amountStr = formatGbpFromStripeAmount(transfer.amount);
+            const base = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+            await sendEmail({
+              to: expertEmail,
+              subject: `Your earnings have been transferred — £${amountStr}`,
+              html: payoutSent({
+                expertName,
+                amount: amountStr,
+                earningsUrl: `${base}/expert/earnings`,
+              }),
+            });
+          })().catch((e) => console.error("email error", e));
+        }
+      } catch (e) {
+        console.error("email error", e);
+      }
     }
 
     console.log("[frame:processBookingPayout] succeeded", {

@@ -7,6 +7,8 @@ import {
   resolvePlatformFeeGbp,
   type CancelledBy,
 } from "@/lib/cancellation";
+import { bookingCancelled } from "@/lib/email-templates";
+import { getUserEmail, sendEmail } from "@/lib/email";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
@@ -35,7 +37,7 @@ export async function POST(_request: Request, { params }: RouteParams) {
   const { data: booking, error: fetchErr } = await supabase
     .from("bookings")
     .select(
-      "id, consumer_user_id, expert_user_id, status, scheduled_at, total_amount, platform_fee, stripe_payment_intent_id",
+      "id, consumer_user_id, expert_user_id, service_id, status, scheduled_at, total_amount, platform_fee, stripe_payment_intent_id",
     )
     .eq("id", bookingId)
     .maybeSingle();
@@ -140,6 +142,70 @@ export async function POST(_request: Request, { params }: RouteParams) {
       { error: "Booking was already updated" },
       { status: 409 },
     );
+  }
+
+  try {
+    const recipientUserId =
+      cancelledBy === "consumer"
+        ? booking.expert_user_id
+        : booking.consumer_user_id;
+    const otherUserId =
+      cancelledBy === "consumer"
+        ? booking.consumer_user_id
+        : booking.expert_user_id;
+
+    void (async () => {
+      const recipientEmail = await getUserEmail(recipientUserId);
+      if (!recipientEmail) {
+        return;
+      }
+
+      const [{ data: rp }, { data: op }, { data: svc }] = await Promise.all([
+        admin.from("profiles").select("full_name").eq("user_id", recipientUserId).maybeSingle(),
+        admin.from("profiles").select("full_name").eq("user_id", otherUserId).maybeSingle(),
+        booking.service_id
+          ? admin.from("services").select("name").eq("id", booking.service_id).maybeSingle()
+          : Promise.resolve({ data: null }),
+      ]);
+
+      const recipientName =
+        typeof rp?.full_name === "string" && rp.full_name.trim() !== ""
+          ? rp.full_name.trim()
+          : "there";
+      const otherPartyName =
+        typeof op?.full_name === "string" && op.full_name.trim() !== ""
+          ? op.full_name.trim()
+          : "the other party";
+      const serviceName =
+        typeof svc?.name === "string" && svc.name.trim() !== ""
+          ? svc.name.trim()
+          : "Service";
+
+      const base = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+      const bookingUrl =
+        recipientUserId === booking.consumer_user_id
+          ? `${base}/bookings/${bookingId}`
+          : `${base}/expert/bookings/${bookingId}`;
+
+      const includeRefundNotice =
+        recipientUserId === booking.consumer_user_id && refundAmountGbp > 0;
+
+      await sendEmail({
+        to: recipientEmail,
+        subject: "Booking cancelled",
+        html: bookingCancelled({
+          recipientName,
+          otherPartyName,
+          serviceName,
+          scheduledAt: booking.scheduled_at,
+          refundAmount: refundAmountGbp,
+          bookingUrl,
+          includeRefundNotice,
+        }),
+      });
+    })().catch((e) => console.error("email error", e));
+  } catch (e) {
+    console.error("email error", e);
   }
 
   const { data: consumerProfile } = await admin

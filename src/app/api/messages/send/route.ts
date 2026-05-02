@@ -1,3 +1,5 @@
+import { newMessage } from "@/lib/email-templates";
+import { getUserEmail, sendEmail } from "@/lib/email";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -191,6 +193,60 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
+  }
+
+  try {
+    void (async () => {
+      const recipientUserId =
+        senderRole === "consumer"
+          ? booking.expert_user_id
+          : booking.consumer_user_id;
+
+      const [{ data: senderProf }, { data: recipientProf }] = await Promise.all([
+        supabase.from("profiles").select("full_name").eq("user_id", user.id).maybeSingle(),
+        supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("user_id", recipientUserId)
+          .maybeSingle(),
+      ]);
+
+      const senderName =
+        typeof senderProf?.full_name === "string" && senderProf.full_name.trim() !== ""
+          ? senderProf.full_name.trim()
+          : "Someone";
+      const recipientName =
+        typeof recipientProf?.full_name === "string" &&
+        recipientProf.full_name.trim() !== ""
+          ? recipientProf.full_name.trim()
+          : "there";
+
+      const messagePreview =
+        content.length > 100 ? `${content.slice(0, 100)}...` : content;
+
+      const base = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+      const conversationUrl =
+        recipientUserId === booking.consumer_user_id
+          ? `${base}/bookings/${bookingId}`
+          : `${base}/expert/bookings/${bookingId}`;
+
+      const email = await getUserEmail(recipientUserId);
+      if (!email) {
+        return;
+      }
+      await sendEmail({
+        to: email,
+        subject: `${senderName} sent you a message on Sensei`,
+        html: newMessage({
+          recipientName,
+          senderName,
+          messagePreview,
+          conversationUrl,
+        }),
+      });
+    })().catch((e) => console.error("email error", e));
+  } catch (e) {
+    console.error("email error", e);
   }
 
   return NextResponse.json(inserted);

@@ -50,11 +50,17 @@ export async function getUserEmail(userId: string): Promise<string | null> {
   try {
     const supabase = createServiceRoleClient();
     const { data, error } = await supabase.auth.admin.getUserById(userId);
-    if (error || !data?.user?.email) {
+    if (error) {
+      console.error('getUserEmail: auth.admin.getUserById error', userId, error);
+      return null;
+    }
+    if (!data?.user?.email) {
+      console.error('getUserEmail: no email found for user', userId);
       return null;
     }
     return data.user.email;
-  } catch {
+  } catch (e) {
+    console.error('getUserEmail: caught error for user', userId, e);
     return null;
   }
 }
@@ -156,6 +162,10 @@ export async function notifyBookingConfirmedEmails(bookingId: string): Promise<v
           }),
         }),
       );
+    }
+
+    if (tasks.length === 0) {
+      console.error('notifyBookingConfirmedEmails: no emails to send', { bookingId, expertEmail: !!expertEmail, consumerEmail: !!consumerEmail });
     }
 
     await Promise.all(tasks);

@@ -1,5 +1,4 @@
 {
-  "_note": "PAYOUT_WORKER_SECRET must be set in Vercel environment variables.",
   "crons": [
     {
       "path": "/api/session/process-payouts",

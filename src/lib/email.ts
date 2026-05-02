@@ -6,7 +6,7 @@ import {
   bookingConfirmedStudent,
 } from "@/lib/email-templates";
 
-const FROM = "Sensei <onboarding@resend.dev>";
+const FROM = "Sensei <hello@bookasensei.com>";
 
 let resendSingleton: Resend | null = null;
 

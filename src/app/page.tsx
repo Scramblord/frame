@@ -76,8 +76,8 @@ export default async function Home() {
     ratingByUserId.set(userId, average);
   }
 
-  const featuredSenseis: FeaturedSensei[] = featuredExperts
-    .map((expert) => {
+  const featuredSenseis = featuredExperts
+    .map<FeaturedSensei | null>((expert) => {
       const profile = expert.profile;
       if (!profile?.id) return null;
       const services = expert.services ?? [];

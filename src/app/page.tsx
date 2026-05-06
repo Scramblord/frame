@@ -102,6 +102,7 @@ export default async function Home() {
         startingPrice,
       };
     })
+    .filter(Boolean)
     .filter((expert): expert is FeaturedSensei => expert !== null);
 
   const { count: foundingCountRaw } = await supabase

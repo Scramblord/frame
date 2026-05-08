@@ -58,6 +58,26 @@ export default async function DashboardPage() {
   );
 
   const featuredExperts = await fetchExpertsWithProfiles(supabase);
+  const featuredIds = featuredExperts.map((e) => e.user_id);
+  const { data: featuredDiscountRows } =
+    featuredIds.length > 0
+      ? await supabase
+          .from("discounts")
+          .select(
+            "expert_user_id, is_active, code, start_date, end_date, max_uses, current_uses",
+          )
+          .in("expert_user_id", featuredIds)
+          .is("code", null)
+          .eq("is_active", true)
+      : { data: [] };
+  const nowIso = new Date().toISOString();
+  const discountExpertIds = new Set(
+    (featuredDiscountRows ?? [])
+      .filter((d) => (d.start_date == null || d.start_date <= nowIso))
+      .filter((d) => (d.end_date == null || d.end_date >= nowIso))
+      .filter((d) => d.max_uses == null || (d.current_uses ?? 0) < d.max_uses)
+      .map((d) => d.expert_user_id as string),
+  );
 
   return (
     <div className="flex min-h-screen w-full flex-1 flex-col bg-[var(--color-bg)]">
@@ -93,6 +113,14 @@ export default async function DashboardPage() {
               Search
             </button>
           </form>
+          <div className="mt-3">
+            <Link
+              href="/enquiries"
+              className="text-sm font-medium text-[var(--color-accent)] hover:underline"
+            >
+              View your enquiries
+            </Link>
+          </div>
         </section>
 
         <section className="mt-12">
@@ -202,6 +230,11 @@ export default async function DashboardPage() {
                           View profile →
                         </Link>
                       </div>
+                      {discountExpertIds.has(ep.user_id as string) ? (
+                        <p className="mt-2 inline-flex rounded-full border border-[var(--color-accent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">
+                          Discount available
+                        </p>
+                      ) : null}
                     </div>
                   </li>
                 );

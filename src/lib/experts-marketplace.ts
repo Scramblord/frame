@@ -11,6 +11,7 @@ export function formatGbp(amount: number) {
 export type ServiceRow = {
   id: string;
   expert_user_id: string;
+  booking_mode?: "fixed" | "flexible";
   name: string;
   description: string | null;
   min_session_minutes: number;

@@ -27,6 +27,26 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const trimmed = (q ?? "").trim();
 
   const experts = await fetchExpertsWithProfiles(supabase, trimmed);
+  const expertIds = experts.map((e) => e.user_id);
+  const { data: discountRows } =
+    expertIds.length > 0
+      ? await supabase
+          .from("discounts")
+          .select(
+            "expert_user_id, is_active, code, start_date, end_date, max_uses, current_uses",
+          )
+          .in("expert_user_id", expertIds)
+          .is("code", null)
+          .eq("is_active", true)
+      : { data: [] };
+  const nowIso = new Date().toISOString();
+  const discountExpertIds = new Set(
+    (discountRows ?? [])
+      .filter((d) => (d.start_date == null || d.start_date <= nowIso))
+      .filter((d) => (d.end_date == null || d.end_date >= nowIso))
+      .filter((d) => d.max_uses == null || (d.current_uses ?? 0) < d.max_uses)
+      .map((d) => d.expert_user_id as string),
+  );
 
   return (
     <div className="min-h-screen w-full flex-1 bg-[var(--color-bg)]">
@@ -179,6 +199,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                             </span>
                           )}
                         </div>
+                        {discountExpertIds.has(ep.user_id as string) ? (
+                          <p className="mt-2 inline-flex rounded-full border border-[var(--color-accent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">
+                            Discount available
+                          </p>
+                        ) : null}
                       </div>
                     </div>
                   </Link>

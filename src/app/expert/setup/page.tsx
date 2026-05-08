@@ -19,6 +19,7 @@ type ServiceForm = {
   id?: string;
   name: string;
   description: string;
+  booking_mode: "fixed" | "flexible";
   min_session_minutes: number;
   max_session_minutes: number;
   offers_messaging: boolean;
@@ -47,6 +48,7 @@ function emptyService(): ServiceForm {
     clientKey: newClientKey(),
     name: "",
     description: "",
+    booking_mode: "fixed",
     min_session_minutes: 30,
     max_session_minutes: 120,
     offers_messaging: false,
@@ -138,6 +140,8 @@ export default function ExpertSetupPage() {
           id: r.id,
           name: r.name,
           description: r.description ?? "",
+          booking_mode:
+            r.booking_mode === "flexible" ? "flexible" : "fixed",
           min_session_minutes: r.min_session_minutes,
           max_session_minutes: r.max_session_minutes,
           offers_messaging: r.offers_messaging,
@@ -446,6 +450,7 @@ export default function ExpertSetupPage() {
         expert_user_id: user.id,
         name: s.name.trim(),
         description: s.description.trim() || null,
+        booking_mode: s.booking_mode,
         min_session_minutes: s.min_session_minutes,
         max_session_minutes: s.max_session_minutes,
         offers_messaging: s.offers_messaging,
@@ -922,6 +927,43 @@ function ServiceFields({
           placeholder="What this service includes…"
           className="mt-1.5 w-full resize-y rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm dark:border-zinc-600 dark:bg-zinc-900"
         />
+      </div>
+
+      <div className="mt-4 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-600 dark:bg-zinc-900">
+        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          Booking mode
+        </p>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => onChange({ booking_mode: "fixed" })}
+            className={`rounded-lg border px-3 py-2 text-left text-sm ${
+              s.booking_mode === "fixed"
+                ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                : "border-zinc-200 bg-white text-zinc-800 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
+            }`}
+          >
+            Fixed booking (calendar-based)
+            <span className="mt-1 block text-xs opacity-80">
+              Students see your availability calendar and book directly.
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange({ booking_mode: "flexible" })}
+            className={`rounded-lg border px-3 py-2 text-left text-sm ${
+              s.booking_mode === "flexible"
+                ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                : "border-zinc-200 bg-white text-zinc-800 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
+            }`}
+          >
+            Flexible timing (enquiry-based)
+            <span className="mt-1 block text-xs opacity-80">
+              Students send you an enquiry. You agree a time via chat, then send
+              them a booking offer to pay.
+            </span>
+          </button>
+        </div>
       </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">

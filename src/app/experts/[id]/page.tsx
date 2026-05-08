@@ -13,6 +13,7 @@ import {
   summarizeWeeklyAvailability,
   type WeeklyAvailabilityRow,
 } from "@/lib/expert-weekly-availability";
+import EnquireButton from "@/components/EnquireButton";
 import Navbar from "@/components/Navbar";
 import Image from "next/image";
 import Link from "next/link";
@@ -337,6 +338,7 @@ export default async function ExpertPublicPage({ params }: PageProps) {
               {services.map((svc) => {
                 const book = (type: "messaging" | "audio" | "video") =>
                   `/book/${profile.id}/${svc.id}?type=${type}`;
+                const isFlexible = svc.booking_mode === "flexible";
                 const bestDiscount = bestAutomaticDiscountForService(
                   (automaticDiscountRows ?? []) as DiscountRow[],
                   svc.id,
@@ -396,10 +398,16 @@ export default async function ExpertPublicPage({ params }: PageProps) {
                           </div>
                           <Link
                             href={book("messaging")}
-                            className="inline-flex items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
+                            className={isFlexible ? "hidden" : "inline-flex items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"}
                           >
                             Book now
                           </Link>
+                          {isFlexible ? (
+                            <EnquireButton
+                              serviceId={svc.id}
+                              className="inline-flex items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
+                            />
+                          ) : null}
                         </li>
                       ) : null}
                       {svc.offers_audio && svc.audio_hourly_rate != null ? (
@@ -434,10 +442,16 @@ export default async function ExpertPublicPage({ params }: PageProps) {
                           </div>
                           <Link
                             href={book("audio")}
-                            className="inline-flex items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
+                            className={isFlexible ? "hidden" : "inline-flex items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"}
                           >
                             Book now
                           </Link>
+                          {isFlexible ? (
+                            <EnquireButton
+                              serviceId={svc.id}
+                              className="inline-flex items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
+                            />
+                          ) : null}
                         </li>
                       ) : null}
                       {svc.offers_video && svc.video_hourly_rate != null ? (
@@ -472,10 +486,16 @@ export default async function ExpertPublicPage({ params }: PageProps) {
                           </div>
                           <Link
                             href={book("video")}
-                            className="inline-flex items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
+                            className={isFlexible ? "hidden" : "inline-flex items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"}
                           >
                             Book now
                           </Link>
+                          {isFlexible ? (
+                            <EnquireButton
+                              serviceId={svc.id}
+                              className="inline-flex items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
+                            />
+                          ) : null}
                         </li>
                       ) : null}
                     </ul>

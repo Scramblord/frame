@@ -53,6 +53,11 @@ export default async function ExpertDashboardPage() {
     .order("created_at", { ascending: true });
 
   const services = serviceRows ?? [];
+  const { count: openEnquiriesCount } = await supabase
+    .from("enquiries")
+    .select("*", { head: true, count: "exact" })
+    .eq("expert_user_id", user.id)
+    .in("status", ["open", "offer_sent"]);
 
   const { data: availabilityRows } = await supabase
     .from("availability")
@@ -485,6 +490,23 @@ export default async function ExpertDashboardPage() {
               className="text-sm text-[var(--color-accent)] hover:underline"
             >
               Manage →
+            </Link>
+          </div>
+
+          <div className="flex items-center justify-between border-t border-[var(--color-border)] py-3">
+            <div>
+              <p className="text-sm font-medium text-[var(--color-text)]">Enquiries</p>
+              <p className="text-xs text-[var(--color-text-muted)]">
+                {(openEnquiriesCount ?? 0) > 0
+                  ? `${openEnquiriesCount} open enquiries`
+                  : "No open enquiries"}
+              </p>
+            </div>
+            <Link
+              href="/expert/enquiries"
+              className="text-sm text-[var(--color-accent)] hover:underline"
+            >
+              View →
             </Link>
           </div>
         </section>

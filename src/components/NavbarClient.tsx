@@ -180,6 +180,13 @@ export default function NavbarClient({
                   Bookings
                 </Link>
                 <Link
+                  href="/expert/enquiries"
+                  onClick={closeMenu}
+                  className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
+                >
+                  Enquiries
+                </Link>
+                <Link
                   href="/expert/earnings"
                   onClick={closeMenu}
                   className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
@@ -202,13 +209,22 @@ export default function NavbarClient({
                 </Link>
               </>
             ) : (
-              <Link
-                href="/bookings"
-                onClick={closeMenu}
-                className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
-              >
-                My Bookings
-              </Link>
+              <>
+                <Link
+                  href="/bookings"
+                  onClick={closeMenu}
+                  className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
+                >
+                  My Bookings
+                </Link>
+                <Link
+                  href="/enquiries"
+                  onClick={closeMenu}
+                  className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
+                >
+                  My Enquiries
+                </Link>
+              </>
             )}
 
             <div className="my-2 h-px bg-[var(--color-border)]" />

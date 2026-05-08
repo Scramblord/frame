@@ -108,7 +108,7 @@ export default async function BookingDetailPage({
   const total = Number(booking.total_amount);
   const showSuccessBanner = successParam === "true";
   const pendingPayment = booking.status === "pending_payment";
-  const showConfirmingPaymentMessage = showSuccessBanner && !pendingPayment;
+  const showConfirmingPaymentMessage = showSuccessBanner && pendingPayment;
   const canCancel =
     isConsumer &&
     (booking.status === "pending_payment" ||

@@ -38,10 +38,17 @@ export default async function ExpertEnquiriesPage() {
     enquiryIds.length > 0
       ? supabase
           .from("enquiry_messages")
-          .select("enquiry_id, content, created_at")
+          .select("enquiry_id, content, created_at, is_offer")
           .in("enquiry_id", enquiryIds)
           .order("created_at", { ascending: false })
-      : { data: [] as { enquiry_id: string; content: string; created_at: string }[] },
+      : {
+          data: [] as {
+            enquiry_id: string;
+            content: string;
+            created_at: string;
+            is_offer: boolean;
+          }[],
+        },
     consumerIds.length > 0
       ? supabase
           .from("profiles")
@@ -53,12 +60,16 @@ export default async function ExpertEnquiriesPage() {
       : { data: [] as { id: string; name: string }[] },
   ]);
 
-  const lastMessageByEnquiry = new Map<string, { content: string; created_at: string }>();
+  const lastMessageByEnquiry = new Map<
+    string,
+    { content: string; created_at: string; is_offer: boolean }
+  >();
   for (const m of messages ?? []) {
     if (!lastMessageByEnquiry.has(m.enquiry_id)) {
       lastMessageByEnquiry.set(m.enquiry_id, {
         content: m.content,
         created_at: m.created_at,
+        is_offer: m.is_offer,
       });
     }
   }
@@ -82,7 +93,9 @@ export default async function ExpertEnquiriesPage() {
           <ul className="mt-6 space-y-3">
             {(enquiries ?? []).map((enquiry) => {
               const msg = lastMessageByEnquiry.get(enquiry.id);
-              const preview = msg?.content?.trim()
+              const preview = msg?.is_offer
+                ? "Booking offer sent"
+                : msg?.content?.trim()
                 ? msg.content.length > 80
                   ? `${msg.content.slice(0, 80)}...`
                   : msg.content

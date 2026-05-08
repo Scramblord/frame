@@ -81,6 +81,13 @@ function formatCountdown(targetIso: string | null): string {
   return `${hours}h ${remMins}m`;
 }
 
+function formatSessionTypeLabel(sessionType?: string): string {
+  if (!sessionType) return "Session";
+  return sessionType
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 function parseOfferPayload(raw: string): null | {
   bookingId?: string;
   sessionType?: string;
@@ -136,6 +143,8 @@ export default function EnquiryThreadClient({
 
   const canSendOffer = role === "expert" && (status === "open" || status === "offer_sent");
   const canChat = status === "open" || status === "offer_sent";
+  const isClosed = status === "closed";
+  const offerAlreadySent = role === "expert" && status === "offer_sent";
   const counterpart = role === "expert" ? consumerName : expertName;
 
   const durationOptions = useMemo(() => {
@@ -353,7 +362,7 @@ export default function EnquiryThreadClient({
                         Booking offer
                       </p>
                       <p>
-                        {payload.sessionType?.replace(/_/g, " ") ?? "Session"} ·{" "}
+                        {formatSessionTypeLabel(payload.sessionType)} ·{" "}
                         {payload.durationMinutes ?? "TBC"} min
                       </p>
                       <p>{formatDateTime(payload.scheduledAt ?? null)}</p>
@@ -412,14 +421,25 @@ export default function EnquiryThreadClient({
         </div>
       ) : null}
 
+      {isClosed ? (
+        <p className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+          This enquiry has been closed.
+        </p>
+      ) : null}
+
       {canSendOffer ? (
         <div className="mt-4">
           <button
             type="button"
             onClick={() => setShowOfferModal(true)}
-            className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+            disabled={offerAlreadySent}
+            className={`w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white ${
+              offerAlreadySent
+                ? "bg-zinc-400 cursor-not-allowed dark:bg-zinc-600"
+                : "bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)]"
+            }`}
           >
-            Send booking offer
+            {offerAlreadySent ? "Offer sent" : "Send booking offer"}
           </button>
         </div>
       ) : null}
@@ -503,16 +523,18 @@ export default function EnquiryThreadClient({
         </div>
       ) : null}
 
-      <div className="mt-4">
-        <button
-          type="button"
-          onClick={() => void closeEnquiry()}
-          disabled={closing || status === "closed"}
-          className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 disabled:opacity-60 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
-        >
-          {closing ? "Closing..." : "Close enquiry"}
-        </button>
-      </div>
+      {!isClosed ? (
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => void closeEnquiry()}
+            disabled={closing}
+            className="w-full rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+          >
+            {closing ? "Closing..." : "Close enquiry"}
+          </button>
+        </div>
+      ) : null}
 
       {error ? (
         <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">

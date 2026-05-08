@@ -52,7 +52,7 @@ export default function EnquireButton({
         "inline-flex items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)] disabled:opacity-60"
       }
     >
-      {loading ? "Creating..." : "Enquire"}
+      {loading ? "Opening..." : "Enquire"}
     </button>
   );
 }

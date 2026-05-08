@@ -403,10 +403,15 @@ export default async function ExpertPublicPage({ params }: PageProps) {
                             Book now
                           </Link>
                           {isFlexible ? (
-                            <EnquireButton
-                              serviceId={svc.id}
-                              className="inline-flex items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
-                            />
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="text-xs text-[var(--color-text-muted)]">
+                                Flexible timing
+                              </span>
+                              <EnquireButton
+                                serviceId={svc.id}
+                                className="inline-flex items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
+                              />
+                            </div>
                           ) : null}
                         </li>
                       ) : null}
@@ -447,10 +452,15 @@ export default async function ExpertPublicPage({ params }: PageProps) {
                             Book now
                           </Link>
                           {isFlexible ? (
-                            <EnquireButton
-                              serviceId={svc.id}
-                              className="inline-flex items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
-                            />
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="text-xs text-[var(--color-text-muted)]">
+                                Flexible timing
+                              </span>
+                              <EnquireButton
+                                serviceId={svc.id}
+                                className="inline-flex items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
+                              />
+                            </div>
                           ) : null}
                         </li>
                       ) : null}
@@ -491,10 +501,15 @@ export default async function ExpertPublicPage({ params }: PageProps) {
                             Book now
                           </Link>
                           {isFlexible ? (
-                            <EnquireButton
-                              serviceId={svc.id}
-                              className="inline-flex items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
-                            />
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="text-xs text-[var(--color-text-muted)]">
+                                Flexible timing
+                              </span>
+                              <EnquireButton
+                                serviceId={svc.id}
+                                className="inline-flex items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
+                              />
+                            </div>
                           ) : null}
                         </li>
                       ) : null}

@@ -1,4 +1,4 @@
-import { gbpToPence } from "@/lib/booking-pricing";
+import { gbpToPence, totalForBooking } from "@/lib/booking-pricing";
 import {
   bestAutomaticDiscountForService,
   type DiscountRow,
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   const { data: booking, error: bErr } = await supabase
     .from("bookings")
     .select(
-      "id, consumer_user_id, expert_user_id, service_id, session_type, status, total_amount, platform_fee",
+      "id, consumer_user_id, expert_user_id, service_id, session_type, duration_minutes, status, total_amount, platform_fee",
     )
     .eq("id", bookingId)
     .maybeSingle();
@@ -77,7 +77,9 @@ export async function POST(request: Request) {
 
   const { data: service } = await supabase
     .from("services")
-    .select("name")
+    .select(
+      "name, offers_messaging, messaging_flat_rate, urgent_messaging_enabled, urgent_messaging_rate, offers_audio, audio_hourly_rate, offers_video, video_hourly_rate",
+    )
     .eq("id", booking.service_id)
     .maybeSingle();
 
@@ -95,7 +97,19 @@ export async function POST(request: Request) {
       ? `${origin}/book/${expertProfilePk}/${booking.service_id}`
       : `${origin}/dashboard`;
 
-  const amountPence = gbpToPence(total);
+  const originalTotal = totalForBooking(
+    service as Parameters<typeof totalForBooking>[0],
+    booking.session_type as Parameters<typeof totalForBooking>[1],
+    booking.duration_minutes ?? null,
+  );
+  if (originalTotal == null || !Number.isFinite(originalTotal) || originalTotal <= 0) {
+    return NextResponse.json(
+      { error: "Invalid original booking amount" },
+      { status: 400 },
+    );
+  }
+
+  const amountPence = gbpToPence(originalTotal);
   const expertStripeAccountId = expertProfile.stripe_account_id;
   const { data: discountRows } = await supabase
     .from("discounts")
@@ -105,7 +119,7 @@ export async function POST(request: Request) {
   const automaticDiscount = bestAutomaticDiscountForService(
     (discountRows ?? []) as DiscountRow[],
     booking.service_id,
-    total,
+    originalTotal,
   );
 
   const session = await stripe.checkout.sessions.create({

@@ -2,6 +2,12 @@ import {
   isPublicExpertUuid,
   loadPublicExpertPageData,
 } from "./fetch-public-expert";
+import {
+  applyDiscountToTotal,
+  bestAutomaticDiscountForService,
+  discountBadgeLabel,
+  type DiscountRow,
+} from "@/lib/discounts";
 import { reliabilityPercent } from "@/lib/cancellation";
 import {
   summarizeWeeklyAvailability,
@@ -178,6 +184,13 @@ export default async function ExpertPublicPage({ params }: PageProps) {
     return `${fmt(a)} – ${fmt(b)}`;
   }
 
+  const { data: automaticDiscountRows } = await supabase
+    .from("discounts")
+    .select("*")
+    .eq("expert_user_id", profile.user_id)
+    .eq("is_active", true)
+    .is("code", null);
+
   return (
     <div className="min-h-screen w-full bg-[var(--color-bg)]">
       <Navbar />
@@ -324,6 +337,12 @@ export default async function ExpertPublicPage({ params }: PageProps) {
               {services.map((svc) => {
                 const book = (type: "messaging" | "audio" | "video") =>
                   `/book/${profile.id}/${svc.id}?type=${type}`;
+                const bestDiscount = bestAutomaticDiscountForService(
+                  (automaticDiscountRows ?? []) as DiscountRow[],
+                  svc.id,
+                  100,
+                );
+                const badge = bestDiscount ? discountBadgeLabel(bestDiscount) : null;
                 return (
                   <li
                     key={svc.id}
@@ -353,7 +372,26 @@ export default async function ExpertPublicPage({ params }: PageProps) {
                               💬 Messaging
                             </p>
                             <p className="text-xs text-[var(--color-text-muted)]">
-                              {formatGbp(Number(svc.messaging_flat_rate))}
+                              {bestDiscount ? (
+                                <span className="inline-flex items-center gap-2">
+                                  <span className="line-through opacity-70">
+                                    {formatGbp(Number(svc.messaging_flat_rate))}
+                                  </span>
+                                  <span className="font-semibold text-[var(--color-accent)]">
+                                    {formatGbp(
+                                      applyDiscountToTotal(
+                                        Number(svc.messaging_flat_rate),
+                                        bestDiscount,
+                                      ),
+                                    )}
+                                  </span>
+                                  <span className="rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                                    {badge}
+                                  </span>
+                                </span>
+                              ) : (
+                                formatGbp(Number(svc.messaging_flat_rate))
+                              )}
                             </p>
                           </div>
                           <Link
@@ -371,7 +409,27 @@ export default async function ExpertPublicPage({ params }: PageProps) {
                               🎙 Audio
                             </p>
                             <p className="text-xs text-[var(--color-text-muted)]">
-                              {formatGbp(Number(svc.audio_hourly_rate))} / hr
+                              {bestDiscount ? (
+                                <span className="inline-flex items-center gap-2">
+                                  <span className="line-through opacity-70">
+                                    {formatGbp(Number(svc.audio_hourly_rate))} / hr
+                                  </span>
+                                  <span className="font-semibold text-[var(--color-accent)]">
+                                    {formatGbp(
+                                      applyDiscountToTotal(
+                                        Number(svc.audio_hourly_rate),
+                                        bestDiscount,
+                                      ),
+                                    )}{" "}
+                                    / hr
+                                  </span>
+                                  <span className="rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                                    {badge}
+                                  </span>
+                                </span>
+                              ) : (
+                                `${formatGbp(Number(svc.audio_hourly_rate))} / hr`
+                              )}
                             </p>
                           </div>
                           <Link
@@ -389,7 +447,27 @@ export default async function ExpertPublicPage({ params }: PageProps) {
                               📹 Video
                             </p>
                             <p className="text-xs text-[var(--color-text-muted)]">
-                              {formatGbp(Number(svc.video_hourly_rate))} / hr
+                              {bestDiscount ? (
+                                <span className="inline-flex items-center gap-2">
+                                  <span className="line-through opacity-70">
+                                    {formatGbp(Number(svc.video_hourly_rate))} / hr
+                                  </span>
+                                  <span className="font-semibold text-[var(--color-accent)]">
+                                    {formatGbp(
+                                      applyDiscountToTotal(
+                                        Number(svc.video_hourly_rate),
+                                        bestDiscount,
+                                      ),
+                                    )}{" "}
+                                    / hr
+                                  </span>
+                                  <span className="rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                                    {badge}
+                                  </span>
+                                </span>
+                              ) : (
+                                `${formatGbp(Number(svc.video_hourly_rate))} / hr`
+                              )}
                             </p>
                           </div>
                           <Link

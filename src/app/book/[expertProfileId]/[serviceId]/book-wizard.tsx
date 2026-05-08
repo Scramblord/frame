@@ -13,6 +13,11 @@ import {
   totalForBooking,
   type BookableSessionType,
 } from "@/lib/booking-pricing";
+import {
+  applyDiscountToTotal,
+  discountBadgeLabel,
+  type DiscountRow,
+} from "@/lib/discounts";
 import { formatGbp, type ServiceRow } from "@/lib/experts-marketplace";
 import { supabase } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -34,6 +39,7 @@ export type BookWizardProps = {
     urgent_messaging_enabled?: boolean;
     urgent_messaging_rate?: number | string | null;
   };
+  automaticDiscount: DiscountRow | null;
   initialSessionType: BookableSessionType | null;
 };
 
@@ -78,6 +84,7 @@ export function BookWizard({
   expertUserId,
   expertTimezone,
   service,
+  automaticDiscount,
   initialSessionType,
 }: BookWizardProps) {
   const tz = expertTimezone?.trim() || DEFAULT_EXPERT_TIMEZONE;
@@ -122,10 +129,18 @@ export function BookWizard({
   const needsSchedule =
     sessionType === "audio" || sessionType === "video";
 
-  const totalGbp = useMemo(() => {
+  const baseTotalGbp = useMemo(() => {
     if (!sessionType) return null;
     return totalForBooking(service, sessionType, durationMinutes);
   }, [service, sessionType, durationMinutes]);
+  const totalGbp = useMemo(() => {
+    if (baseTotalGbp == null) return null;
+    if (!automaticDiscount) return baseTotalGbp;
+    return applyDiscountToTotal(baseTotalGbp, automaticDiscount);
+  }, [baseTotalGbp, automaticDiscount]);
+  const discountBadge = automaticDiscount
+    ? discountBadgeLabel(automaticDiscount)
+    : null;
 
   const platformFee =
     totalGbp != null ? platformFeeFromTotal(totalGbp) : null;
@@ -468,7 +483,26 @@ export function BookWizard({
                 >
                   <p className="font-semibold">Messaging</p>
                   <p className="mt-1 text-sm opacity-90">
-                    {formatGbp(Number(service.messaging_flat_rate))} flat
+                    {automaticDiscount ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="line-through opacity-80">
+                          {formatGbp(Number(service.messaging_flat_rate))}
+                        </span>
+                        <span className="font-semibold">
+                          {formatGbp(
+                            applyDiscountToTotal(
+                              Number(service.messaging_flat_rate),
+                              automaticDiscount,
+                            ),
+                          )}
+                        </span>
+                        <span className="rounded-full border border-current/25 px-2 py-0.5 text-[10px] uppercase tracking-wide">
+                          {discountBadge}
+                        </span>
+                      </span>
+                    ) : (
+                      `${formatGbp(Number(service.messaging_flat_rate))} flat`
+                    )}
                   </p>
                 </button>
               </li>
@@ -487,7 +521,26 @@ export function BookWizard({
                 >
                   <p className="font-semibold">Urgent messaging</p>
                   <p className="mt-1 text-sm opacity-90">
-                    {formatGbp(Number(service.urgent_messaging_rate))} flat
+                    {automaticDiscount ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="line-through opacity-80">
+                          {formatGbp(Number(service.urgent_messaging_rate))}
+                        </span>
+                        <span className="font-semibold">
+                          {formatGbp(
+                            applyDiscountToTotal(
+                              Number(service.urgent_messaging_rate),
+                              automaticDiscount,
+                            ),
+                          )}
+                        </span>
+                        <span className="rounded-full border border-current/25 px-2 py-0.5 text-[10px] uppercase tracking-wide">
+                          {discountBadge}
+                        </span>
+                      </span>
+                    ) : (
+                      `${formatGbp(Number(service.urgent_messaging_rate))} flat`
+                    )}
                   </p>
                 </button>
               </li>
@@ -505,9 +558,22 @@ export function BookWizard({
                 >
                   <p className="font-semibold">Audio</p>
                   <p className="mt-1 text-sm opacity-90">
-                    {formatGbp(Number(service.audio_hourly_rate))} / hr ·{" "}
+                    {automaticDiscount
+                      ? formatGbp(
+                          applyDiscountToTotal(
+                            Number(service.audio_hourly_rate),
+                            automaticDiscount,
+                          ),
+                        )
+                      : formatGbp(Number(service.audio_hourly_rate))}{" "}
+                    / hr ·{" "}
                     {service.min_session_minutes}–{service.max_session_minutes}{" "}
                     min
+                    {automaticDiscount ? (
+                      <span className="ml-2 rounded-full border border-current/25 px-2 py-0.5 text-[10px] uppercase tracking-wide">
+                        {discountBadge}
+                      </span>
+                    ) : null}
                   </p>
                 </button>
               </li>
@@ -525,9 +591,22 @@ export function BookWizard({
                 >
                   <p className="font-semibold">Video</p>
                   <p className="mt-1 text-sm opacity-90">
-                    {formatGbp(Number(service.video_hourly_rate))} / hr ·{" "}
+                    {automaticDiscount
+                      ? formatGbp(
+                          applyDiscountToTotal(
+                            Number(service.video_hourly_rate),
+                            automaticDiscount,
+                          ),
+                        )
+                      : formatGbp(Number(service.video_hourly_rate))}{" "}
+                    / hr ·{" "}
                     {service.min_session_minutes}–{service.max_session_minutes}{" "}
                     min
+                    {automaticDiscount ? (
+                      <span className="ml-2 rounded-full border border-current/25 px-2 py-0.5 text-[10px] uppercase tracking-wide">
+                        {discountBadge}
+                      </span>
+                    ) : null}
                   </p>
                 </button>
               </li>
@@ -815,9 +894,17 @@ export function BookWizard({
               <div className="flex justify-between gap-4">
                 <dt className="text-zinc-500">Subtotal</dt>
                 <dd className="font-medium text-zinc-900 dark:text-zinc-50">
-                  {totalGbp != null ? formatGbp(totalGbp) : "—"}
+                  {baseTotalGbp != null ? formatGbp(baseTotalGbp) : "—"}
                 </dd>
               </div>
+              {automaticDiscount && baseTotalGbp != null && totalGbp != null ? (
+                <div className="mt-2 flex justify-between gap-4">
+                  <dt className="text-zinc-500">Discount</dt>
+                  <dd className="font-medium text-[var(--color-accent)]">
+                    -{formatGbp(Math.max(0, baseTotalGbp - totalGbp))} ({discountBadge})
+                  </dd>
+                </div>
+              ) : null}
               <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
                 The Sensei platform receives a small fee — the remainder is
                 passed directly to your Sensei upon completion of your session.

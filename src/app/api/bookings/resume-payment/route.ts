@@ -85,7 +85,6 @@ export async function POST(request: Request) {
   if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
     return NextResponse.json({ error: "Invalid booking amount" }, { status: 400 });
   }
-
   const platformFeeRaw = Number(booking.platform_fee);
   const platformFee =
     Number.isFinite(platformFeeRaw) && platformFeeRaw > 0 ? platformFeeRaw : 0;
@@ -93,10 +92,24 @@ export async function POST(request: Request) {
   const amountPence = gbpToPence(totalAmount);
   const feePence = gbpToPence(platformFee);
   const origin = getAppOrigin();
+  const { data: discountRows } = await supabase
+    .from("discounts")
+    .select("*")
+    .eq("expert_user_id", booking.expert_user_id)
+    .eq("is_active", true);
+  const automaticDiscount = bestAutomaticDiscountForService(
+    (discountRows ?? []) as DiscountRow[],
+    booking.service_id,
+    totalAmount,
+  );
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     payment_method_types: ["card"],
+    allow_promotion_codes: automaticDiscount ? undefined : true,
+    discounts: automaticDiscount
+      ? [{ coupon: automaticDiscount.stripe_coupon_id }]
+      : undefined,
     line_items: [
       {
         quantity: 1,
@@ -127,6 +140,7 @@ export async function POST(request: Request) {
     metadata: {
       booking_id: booking.id,
       expert_stripe_account_id: expertProfile.stripe_account_id,
+      automatic_discount_id: automaticDiscount?.id ?? "",
     },
     expand: ["payment_intent"],
   });

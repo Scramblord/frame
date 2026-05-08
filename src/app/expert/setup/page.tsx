@@ -29,6 +29,19 @@ type ServiceForm = {
   video_hourly_rate: string;
 };
 
+type DiscountForm = {
+  id: string;
+  service_id: string | null;
+  discount_type: "percentage" | "fixed";
+  amount: number | string;
+  code: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  max_uses: number | null;
+  current_uses: number;
+  is_active: boolean;
+};
+
 function emptyService(): ServiceForm {
   return {
     clientKey: newClientKey(),
@@ -59,6 +72,22 @@ export default function ExpertSetupPage() {
   const [timezone, setTimezone] = useState("");
 
   const [services, setServices] = useState<ServiceForm[]>([emptyService()]);
+  const [discounts, setDiscounts] = useState<DiscountForm[]>([]);
+  const [discountServices, setDiscountServices] = useState<
+    { id: string; name: string; is_active: boolean }[]
+  >([]);
+  const [showDiscountForm, setShowDiscountForm] = useState(false);
+  const [discountSubmitting, setDiscountSubmitting] = useState(false);
+  const [discountForm, setDiscountForm] = useState({
+    serviceId: "all",
+    discountType: "percentage" as "percentage" | "fixed",
+    amount: "",
+    code: "",
+    startDate: "",
+    endDate: "",
+    maxUses: "",
+    isActive: true,
+  });
 
   const sessionSelectClass =
     "mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 shadow-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:ring-zinc-100/20";
@@ -123,6 +152,18 @@ export default function ExpertSetupPage() {
         })),
       );
     }
+    const discountsRes = await fetch("/api/expert/discounts", {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (discountsRes.ok) {
+      const payload = (await discountsRes.json()) as {
+        discounts?: DiscountForm[];
+        services?: { id: string; name: string; is_active: boolean }[];
+      };
+      setDiscounts(payload.discounts ?? []);
+      setDiscountServices(payload.services ?? []);
+    }
 
     try {
       setTimezones(Intl.supportedValuesOf("timeZone"));
@@ -181,6 +222,100 @@ export default function ExpertSetupPage() {
     setServices((prev) =>
       prev.length <= 1 ? prev : prev.filter((s) => s.clientKey !== clientKey),
     );
+  }
+
+  function discountStatus(d: DiscountForm): "active" | "scheduled" | "expired" {
+    const nowMs = Date.now();
+    if (d.end_date && new Date(d.end_date).getTime() < nowMs) return "expired";
+    if (d.start_date && new Date(d.start_date).getTime() > nowMs) return "scheduled";
+    return "active";
+  }
+
+  async function refreshDiscounts() {
+    const discountsRes = await fetch("/api/expert/discounts", {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!discountsRes.ok) return;
+    const payload = (await discountsRes.json()) as {
+      discounts?: DiscountForm[];
+      services?: { id: string; name: string; is_active: boolean }[];
+    };
+    setDiscounts(payload.discounts ?? []);
+    setDiscountServices(payload.services ?? []);
+  }
+
+  async function createDiscount() {
+    setError(null);
+    const amount = Number(discountForm.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError("Enter a valid discount amount.");
+      return;
+    }
+    setDiscountSubmitting(true);
+    const res = await fetch("/api/expert/discounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        serviceId: discountForm.serviceId === "all" ? null : discountForm.serviceId,
+        discountType: discountForm.discountType,
+        amount,
+        code: discountForm.code.trim() || null,
+        startDate: discountForm.startDate
+          ? new Date(discountForm.startDate).toISOString()
+          : null,
+        endDate: discountForm.endDate
+          ? new Date(discountForm.endDate).toISOString()
+          : null,
+        maxUses: discountForm.maxUses ? Number(discountForm.maxUses) : null,
+        isActive: discountForm.isActive,
+      }),
+    });
+    const json = (await res.json()) as { error?: string };
+    if (!res.ok) {
+      setError(json.error ?? "Could not create discount");
+      setDiscountSubmitting(false);
+      return;
+    }
+    setDiscountSubmitting(false);
+    setShowDiscountForm(false);
+    setDiscountForm({
+      serviceId: "all",
+      discountType: "percentage",
+      amount: "",
+      code: "",
+      startDate: "",
+      endDate: "",
+      maxUses: "",
+      isActive: true,
+    });
+    await refreshDiscounts();
+  }
+
+  async function toggleDiscount(id: string, isActive: boolean) {
+    const res = await fetch(`/api/expert/discounts/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isActive }),
+    });
+    if (!res.ok) {
+      const json = (await res.json()) as { error?: string };
+      setError(json.error ?? "Could not update discount");
+      return;
+    }
+    await refreshDiscounts();
+  }
+
+  async function deleteDiscount(id: string) {
+    const res = await fetch(`/api/expert/discounts/${id}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const json = (await res.json()) as { error?: string };
+      setError(json.error ?? "Could not delete discount");
+      return;
+    }
+    await refreshDiscounts();
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -503,6 +638,203 @@ export default function ExpertSetupPage() {
               >
                 Add another service
               </button>
+            </div>
+
+            <div
+              id="discounts-section"
+              className="border-t border-zinc-200 pt-8 dark:border-zinc-700"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
+                    Discounts &amp; Promotions
+                  </h2>
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    Automatic discounts apply at checkout. Promo codes can be entered at checkout.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowDiscountForm((v) => !v)}
+                  className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                >
+                  {showDiscountForm ? "Close" : "Add discount"}
+                </button>
+              </div>
+
+              {showDiscountForm ? (
+                <div className="mt-4 space-y-4 rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-600 dark:bg-zinc-800/40">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                      Scope
+                      <select
+                        value={discountForm.serviceId}
+                        onChange={(e) =>
+                          setDiscountForm((p) => ({ ...p, serviceId: e.target.value }))
+                        }
+                        className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900"
+                      >
+                        <option value="all">All services</option>
+                        {discountServices.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                      Type
+                      <select
+                        value={discountForm.discountType}
+                        onChange={(e) =>
+                          setDiscountForm((p) => ({
+                            ...p,
+                            discountType: e.target.value as "percentage" | "fixed",
+                          }))
+                        }
+                        className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900"
+                      >
+                        <option value="percentage">Percentage (%)</option>
+                        <option value="fixed">Fixed amount (£)</option>
+                      </select>
+                    </label>
+                    <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                      Amount
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={discountForm.amount}
+                        onChange={(e) =>
+                          setDiscountForm((p) => ({ ...p, amount: e.target.value }))
+                        }
+                        className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900"
+                      />
+                    </label>
+                    <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                      Promo code (optional)
+                      <input
+                        type="text"
+                        value={discountForm.code}
+                        onChange={(e) =>
+                          setDiscountForm((p) => ({ ...p, code: e.target.value }))
+                        }
+                        placeholder="e.g. BJJLAUNCH"
+                        className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm uppercase dark:border-zinc-600 dark:bg-zinc-900"
+                      />
+                    </label>
+                    <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                      Start date (optional)
+                      <input
+                        type="datetime-local"
+                        value={discountForm.startDate}
+                        onChange={(e) =>
+                          setDiscountForm((p) => ({ ...p, startDate: e.target.value }))
+                        }
+                        className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900"
+                      />
+                    </label>
+                    <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                      End date (optional)
+                      <input
+                        type="datetime-local"
+                        value={discountForm.endDate}
+                        onChange={(e) =>
+                          setDiscountForm((p) => ({ ...p, endDate: e.target.value }))
+                        }
+                        className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900"
+                      />
+                    </label>
+                    <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                      Max uses (optional)
+                      <input
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={discountForm.maxUses}
+                        onChange={(e) =>
+                          setDiscountForm((p) => ({ ...p, maxUses: e.target.value }))
+                        }
+                        className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900"
+                      />
+                    </label>
+                  </div>
+                  <label className="inline-flex items-center gap-2 text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                    <input
+                      type="checkbox"
+                      checked={discountForm.isActive}
+                      onChange={(e) =>
+                        setDiscountForm((p) => ({ ...p, isActive: e.target.checked }))
+                      }
+                    />
+                    Active
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => void createDiscount()}
+                    disabled={discountSubmitting}
+                    className="w-full rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                  >
+                    {discountSubmitting ? "Saving..." : "Save discount"}
+                  </button>
+                </div>
+              ) : null}
+
+              <div className="mt-4 space-y-3">
+                {discounts.length === 0 ? (
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                    No discounts yet.
+                  </p>
+                ) : (
+                  discounts.map((d) => {
+                    const status = discountStatus(d);
+                    const scopeName =
+                      d.service_id == null
+                        ? "All services"
+                        : discountServices.find((s) => s.id === d.service_id)?.name ??
+                          "Specific service";
+                    return (
+                      <div
+                        key={d.id}
+                        className="rounded-xl border border-zinc-200 bg-white px-4 py-3 dark:border-zinc-600 dark:bg-zinc-900"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                              {d.code?.trim()
+                                ? `Code: ${d.code}`
+                                : "Automatic discount"}{" "}
+                              ·{" "}
+                              {d.discount_type === "percentage"
+                                ? `${Number(d.amount)}%`
+                                : `£${Number(d.amount).toFixed(2)}`}
+                            </p>
+                            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                              {scopeName} · status: {status}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => void toggleDiscount(d.id, !d.is_active)}
+                              className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                            >
+                              {d.is_active ? "Deactivate" : "Activate"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void deleteDiscount(d.id)}
+                              className="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-950/40"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
   
             {error ? (

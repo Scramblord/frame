@@ -7,6 +7,11 @@ import {
   totalForBooking,
   type BookableSessionType,
 } from "@/lib/booking-pricing";
+import {
+  applyDiscountToTotal,
+  bestAutomaticDiscountForService,
+  type DiscountRow,
+} from "@/lib/discounts";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -203,7 +208,29 @@ export async function POST(request: Request) {
     );
   }
 
-  const platformFee = platformFeeFromTotal(total);
+  const { data: discountRows } = await supabase
+    .from("discounts")
+    .select("*")
+    .eq("expert_user_id", expertUserId)
+    .eq("is_active", true)
+    .is("code", null);
+  const automaticDiscount = bestAutomaticDiscountForService(
+    (discountRows ?? []) as DiscountRow[],
+    serviceId,
+    total,
+  );
+
+  const discountedTotal = automaticDiscount
+    ? applyDiscountToTotal(total, automaticDiscount)
+    : total;
+  if (!Number.isFinite(discountedTotal) || discountedTotal <= 0) {
+    return NextResponse.json(
+      { error: "Discounted total is invalid" },
+      { status: 400 },
+    );
+  }
+
+  const platformFee = platformFeeFromTotal(discountedTotal);
 
   const { data: inserted, error: insErr } = await supabase
     .from("bookings")
@@ -215,7 +242,7 @@ export async function POST(request: Request) {
       scheduled_at: scheduledAt,
       duration_minutes: durationForRow,
       status: "pending_payment",
-      total_amount: total,
+      total_amount: discountedTotal,
       platform_fee: platformFee,
     })
     .select("id")

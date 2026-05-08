@@ -472,6 +472,21 @@ export default async function ExpertDashboardPage() {
               Edit →
             </Link>
           </div>
+
+          <div className="flex items-center justify-between border-t border-[var(--color-border)] py-3">
+            <div>
+              <p className="text-sm font-medium text-[var(--color-text)]">Discounts</p>
+              <p className="text-xs text-[var(--color-text-muted)]">
+                Manage automatic discounts and promo codes
+              </p>
+            </div>
+            <Link
+              href="/expert/setup#discounts-section"
+              className="text-sm text-[var(--color-accent)] hover:underline"
+            >
+              Manage →
+            </Link>
+          </div>
         </section>
       </main>
     </div>

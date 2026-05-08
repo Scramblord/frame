@@ -93,10 +93,24 @@ export async function POST(request: Request) {
 
   const amountPence = gbpToPence(total);
   const expertStripeAccountId = expertProfile.stripe_account_id;
+  const { data: discountRows } = await supabase
+    .from("discounts")
+    .select("*")
+    .eq("expert_user_id", booking.expert_user_id)
+    .eq("is_active", true);
+  const automaticDiscount = bestAutomaticDiscountForService(
+    (discountRows ?? []) as DiscountRow[],
+    booking.service_id,
+    total,
+  );
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     payment_method_types: ["card"],
+    allow_promotion_codes: automaticDiscount ? undefined : true,
+    discounts: automaticDiscount
+      ? [{ coupon: automaticDiscount.stripe_coupon_id }]
+      : undefined,
     line_items: [
       {
         quantity: 1,
@@ -125,6 +139,7 @@ export async function POST(request: Request) {
     metadata: {
       booking_id: booking.id,
       expert_stripe_account_id: expertStripeAccountId,
+      automatic_discount_id: automaticDiscount?.id ?? "",
     },
   });
 

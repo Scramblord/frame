@@ -1,5 +1,9 @@
 import { BookWizard } from "./book-wizard";
 import type { BookableSessionType } from "@/lib/booking-pricing";
+import {
+  bestAutomaticDiscountForService,
+  type DiscountRow,
+} from "@/lib/discounts";
 import { createClient } from "@/lib/supabase/server";
 import type { ServiceRow } from "@/lib/experts-marketplace";
 import { notFound, redirect } from "next/navigation";
@@ -79,6 +83,18 @@ export default async function BookServicePage({ params, searchParams }: PageProp
 
   const initialSessionType = parseInitialSessionType(typeParam);
 
+  const { data: automaticDiscountRows } = await supabase
+    .from("discounts")
+    .select("*")
+    .eq("expert_user_id", expertUserId)
+    .eq("is_active", true)
+    .is("code", null);
+  const automaticDiscount = bestAutomaticDiscountForService(
+    (automaticDiscountRows ?? []) as DiscountRow[],
+    service.id,
+    100,
+  );
+
   return (
     <BookWizard
       expertProfileId={expertProfileId}
@@ -89,6 +105,7 @@ export default async function BookServicePage({ params, searchParams }: PageProp
         urgent_messaging_enabled?: boolean;
         urgent_messaging_rate?: number | string | null;
       }}
+      automaticDiscount={automaticDiscount}
       initialSessionType={initialSessionType}
     />
   );

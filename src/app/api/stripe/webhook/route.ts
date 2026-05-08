@@ -85,6 +85,8 @@ export async function POST(request: Request) {
     const bookingId = session.metadata?.booking_id;
     const expertStripeAccountId =
       session.metadata?.expert_stripe_account_id?.trim() || null;
+    const automaticDiscountId =
+      session.metadata?.automatic_discount_id?.trim() || null;
     if (!bookingId) {
       console.error("checkout.session.completed missing booking_id metadata");
       return NextResponse.json({ received: true });
@@ -119,6 +121,19 @@ export async function POST(request: Request) {
       if (updErr) {
         console.error("Failed to update booking after payment", updErr);
       } else if (updatedRows?.length) {
+        if (automaticDiscountId) {
+          const { data: discountRow } = await admin
+            .from("discounts")
+            .select("id, current_uses")
+            .eq("id", automaticDiscountId)
+            .maybeSingle();
+          if (discountRow) {
+            await admin
+              .from("discounts")
+              .update({ current_uses: (discountRow.current_uses ?? 0) + 1 })
+              .eq("id", automaticDiscountId);
+          }
+        }
         try {
           void notifyBookingConfirmedEmails(bookingId).catch((e) =>
             console.error("email error", e),

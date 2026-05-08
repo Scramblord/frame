@@ -11,6 +11,9 @@ import {
   formatGbp,
   startingPrice,
 } from "@/lib/experts-marketplace";
+import DashboardAlertStrip, {
+  type DashboardAlertItem,
+} from "@/components/DashboardAlertStrip";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +34,44 @@ export default async function DashboardPage() {
     .maybeSingle();
 
   const displayName = profile?.full_name?.trim() || "there";
+  const nowIsoForAlerts = new Date().toISOString();
+  const next24Iso = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+  const [{ count: offerSentCount }, { count: soonBookingCount }] = await Promise.all([
+    supabase
+      .from("enquiries")
+      .select("*", { head: true, count: "exact" })
+      .eq("consumer_user_id", user.id)
+      .eq("status", "offer_sent"),
+    supabase
+      .from("bookings")
+      .select("*", { head: true, count: "exact" })
+      .eq("consumer_user_id", user.id)
+      .eq("status", "confirmed")
+      .gte("scheduled_at", nowIsoForAlerts)
+      .lte("scheduled_at", next24Iso),
+  ]);
+
+  const dashboardAlerts: DashboardAlertItem[] = [];
+  if ((offerSentCount ?? 0) > 0) {
+    const count = offerSentCount ?? 0;
+    dashboardAlerts.push({
+      id: "consumer-offer-sent",
+      tone: "attention",
+      message: `You have ${count} booking offer${count === 1 ? "" : "s"} waiting for your response.`,
+      href: "/enquiries",
+      linkLabel: "View enquiries",
+    });
+  }
+  if ((soonBookingCount ?? 0) > 0) {
+    dashboardAlerts.push({
+      id: "consumer-upcoming-24h",
+      tone: "warning",
+      message: "You have a session coming up soon.",
+      href: "/bookings",
+      linkLabel: "View bookings",
+    });
+  }
 
   const nowMs = Date.now();
   const { data: upcomingRaw } = await supabase
@@ -85,6 +126,7 @@ export default async function DashboardPage() {
       <SyncSenseiModeOnMount senseiMode={false} />
       <ActiveSessionBanner />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 pb-16 pt-10 sm:px-6">
+        <DashboardAlertStrip storageScope={`consumer-${user.id}`} alerts={dashboardAlerts} />
         <section>
           <p className="text-sm font-medium text-[var(--color-text-muted)]">
             Hey {displayName}

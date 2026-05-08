@@ -3,6 +3,7 @@ import Link from "next/link";
 import NavbarClient from "@/components/NavbarClient";
 import BecomeExpertBanner from "@/components/BecomeExpertBanner";
 import NavModeLinks from "@/components/NavModeLinks";
+import NavbarNotifications from "@/components/NavbarNotifications";
 
 export default async function Navbar() {
   const supabase = await createClient();
@@ -81,12 +82,26 @@ export default async function Navbar() {
 
           <div className="flex shrink-0 items-center justify-end">
             {user ? <NavModeLinks senseiHref={senseiHref} /> : null}
-            <NavbarClient
-              signedIn={!!user}
-              fullName={profile?.full_name ?? null}
-              initials={initials}
-              avatarUrl={profile?.avatar_url ?? null}
-            />
+            {user ? (
+              <NavbarNotifications userId={user.id}>
+                {(counts) => (
+                  <NavbarClient
+                    signedIn
+                    fullName={profile?.full_name ?? null}
+                    initials={initials}
+                    avatarUrl={profile?.avatar_url ?? null}
+                    notificationCounts={counts}
+                  />
+                )}
+              </NavbarNotifications>
+            ) : (
+              <NavbarClient
+                signedIn={false}
+                fullName={profile?.full_name ?? null}
+                initials={initials}
+                avatarUrl={profile?.avatar_url ?? null}
+              />
+            )}
           </div>
         </div>
       </header>

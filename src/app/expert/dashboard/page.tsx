@@ -10,6 +10,9 @@ import {
   formatGbp,
   lowestPriceForService,
 } from "@/lib/experts-marketplace";
+import DashboardAlertStrip, {
+  type DashboardAlertItem,
+} from "@/components/DashboardAlertStrip";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -46,6 +49,9 @@ export default async function ExpertDashboardPage() {
     redirect("/expert/setup");
   }
 
+  const nowIso = new Date().toISOString();
+  const next24Iso = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
   const { data: serviceRows } = await supabase
     .from("services")
     .select("*")
@@ -58,6 +64,42 @@ export default async function ExpertDashboardPage() {
     .select("*", { head: true, count: "exact" })
     .eq("expert_user_id", user.id)
     .in("status", ["open", "offer_sent"]);
+
+  const [{ count: openOnlyEnquiriesCount }, { count: soonBookingCount }] = await Promise.all([
+    supabase
+      .from("enquiries")
+      .select("*", { head: true, count: "exact" })
+      .eq("expert_user_id", user.id)
+      .eq("status", "open"),
+    supabase
+      .from("bookings")
+      .select("*", { head: true, count: "exact" })
+      .eq("expert_user_id", user.id)
+      .eq("status", "confirmed")
+      .gte("scheduled_at", nowIso)
+      .lte("scheduled_at", next24Iso),
+  ]);
+
+  const dashboardAlerts: DashboardAlertItem[] = [];
+  if ((openOnlyEnquiriesCount ?? 0) > 0) {
+    const count = openOnlyEnquiriesCount ?? 0;
+    dashboardAlerts.push({
+      id: "expert-open-enquiries",
+      tone: "attention",
+      message: `You have ${count} new ${count === 1 ? "enquiry" : "enquiries"} waiting for your response.`,
+      href: "/expert/enquiries",
+      linkLabel: "View enquiries",
+    });
+  }
+  if ((soonBookingCount ?? 0) > 0) {
+    dashboardAlerts.push({
+      id: "expert-upcoming-24h",
+      tone: "warning",
+      message: "You have a session coming up soon.",
+      href: "/expert/bookings",
+      linkLabel: "View bookings",
+    });
+  }
 
   const { data: availabilityRows } = await supabase
     .from("availability")
@@ -259,6 +301,7 @@ export default async function ExpertDashboardPage() {
       <SyncSenseiModeOnMount senseiMode />
       <ActiveSessionBanner />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 pb-16 pt-10 sm:px-6">
+        <DashboardAlertStrip storageScope={`expert-${user.id}`} alerts={dashboardAlerts} />
         <header>
           <h1 className="mb-1 text-3xl font-bold tracking-tight text-[var(--color-text)]">
             {greeting}, {firstName}

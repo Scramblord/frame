@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import type { NavbarNotificationCounts } from "@/components/NavbarNotifications";
 
 type NavbarClientProps = {
   fullName: string | null;
   initials: string | null;
   avatarUrl: string | null;
   signedIn: boolean;
+  notificationCounts?: NavbarNotificationCounts;
 };
 
 export default function NavbarClient({
@@ -16,6 +18,7 @@ export default function NavbarClient({
   initials,
   avatarUrl,
   signedIn,
+  notificationCounts,
 }: NavbarClientProps) {
   const pathname = usePathname() ?? "";
   const router = useRouter();
@@ -84,6 +87,19 @@ export default function NavbarClient({
 
   function closeMenu() {
     setOpen(false);
+  }
+
+  function itemLabelWithBadge(label: string, count?: number) {
+    return (
+      <span className="relative inline-flex items-center pr-5">
+        <span>{label}</span>
+        {count && count > 0 ? (
+          <span className="absolute -right-0.5 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
+            {count > 99 ? "99+" : count}
+          </span>
+        ) : null}
+      </span>
+    );
   }
 
   const dropdownItemClass =
@@ -177,14 +193,14 @@ export default function NavbarClient({
                   onClick={closeMenu}
                   className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
                 >
-                  Bookings
+                  {itemLabelWithBadge("Bookings", notificationCounts?.expertBookings)}
                 </Link>
                 <Link
                   href="/expert/enquiries"
                   onClick={closeMenu}
                   className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
                 >
-                  Enquiries
+                  {itemLabelWithBadge("Enquiries", notificationCounts?.expertEnquiries)}
                 </Link>
                 <Link
                   href="/expert/earnings"
@@ -215,14 +231,14 @@ export default function NavbarClient({
                   onClick={closeMenu}
                   className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
                 >
-                  My Bookings
+                  {itemLabelWithBadge("My Bookings", notificationCounts?.consumerBookings)}
                 </Link>
                 <Link
                   href="/enquiries"
                   onClick={closeMenu}
                   className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
                 >
-                  My Enquiries
+                  {itemLabelWithBadge("My Enquiries", notificationCounts?.consumerEnquiries)}
                 </Link>
               </>
             )}

@@ -1,4 +1,8 @@
 import { gbpToPence } from "@/lib/booking-pricing";
+import {
+  bestAutomaticDiscountForService,
+  type DiscountRow,
+} from "@/lib/discounts";
 import { createClient } from "@/lib/supabase/server";
 import { getAppOrigin, stripe } from "@/lib/stripe";
 import { NextResponse } from "next/server";

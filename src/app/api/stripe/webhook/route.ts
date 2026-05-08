@@ -60,11 +60,25 @@ export async function POST(request: Request) {
         })
         .eq("id", bookingId)
         .eq("status", "pending_payment")
-        .select("id");
+        .select("id, source_enquiry_id");
 
       if (updErr) {
         console.error("Failed to confirm booking after PI succeeded", updErr);
       } else if (updatedRows?.length) {
+        const sourceEnquiryId = updatedRows[0]?.source_enquiry_id;
+        if (sourceEnquiryId) {
+          const { error: enquiryErr } = await admin
+            .from("enquiries")
+            .update({ status: "booked" })
+            .eq("id", sourceEnquiryId)
+            .eq("status", "offer_sent");
+          if (enquiryErr) {
+            console.error(
+              "Failed to update enquiry after PI succeeded",
+              enquiryErr,
+            );
+          }
+        }
         try {
           void notifyBookingConfirmedEmails(bookingId).catch((e) =>
             console.error("email error", e),
@@ -116,11 +130,22 @@ export async function POST(request: Request) {
         })
         .eq("id", bookingId)
         .eq("status", "pending_payment")
-        .select("id");
+        .select("id, source_enquiry_id");
 
       if (updErr) {
         console.error("Failed to update booking after payment", updErr);
       } else if (updatedRows?.length) {
+        const sourceEnquiryId = updatedRows[0]?.source_enquiry_id;
+        if (sourceEnquiryId) {
+          const { error: enquiryErr } = await admin
+            .from("enquiries")
+            .update({ status: "booked" })
+            .eq("id", sourceEnquiryId)
+            .eq("status", "offer_sent");
+          if (enquiryErr) {
+            console.error("Failed to update enquiry after payment", enquiryErr);
+          }
+        }
         if (automaticDiscountId) {
           const { data: discountRow } = await admin
             .from("discounts")

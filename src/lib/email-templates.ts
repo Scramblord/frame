@@ -1,3 +1,5 @@
+import { formatDurationMinutes } from "@/lib/booking-display";
+
 /** Escape text for safe insertion into HTML email bodies. */
 export function escapeHtml(s: string): string {
   return s
@@ -206,6 +208,58 @@ export function payoutSent(params: {
   const inner = `
     <p>Hi ${escapeHtml(params.expertName)}, £${escapeHtml(params.amount)} has been transferred to your Stripe account.</p>
     ${ctaButton("View earnings", params.earningsUrl)}
+  `;
+  return emailShell(inner);
+}
+
+export function enquiryReceived(params: {
+  senseiName: string;
+  studentName: string;
+  serviceName: string;
+  enquiryUrl: string;
+}): string {
+  const inner = `
+    <p>Hi ${escapeHtml(params.senseiName)}, you have a new enquiry from ${escapeHtml(params.studentName)} about ${escapeHtml(params.serviceName)}. Log in to respond.</p>
+    ${ctaButton("View enquiry", params.enquiryUrl)}
+  `;
+  return emailShell(inner);
+}
+
+export function bookingOfferSent(params: {
+  studentName: string;
+  senseiName: string;
+  serviceName: string;
+  sessionType: string;
+  scheduledAt: string | null | undefined;
+  durationMinutes: number | null | undefined;
+  totalAmount: number;
+  offerExpiresAt: string | null | undefined;
+  enquiryUrl: string;
+}): string {
+  void params.offerExpiresAt;
+  const when =
+    params.scheduledAt == null || String(params.scheduledAt).trim() === ""
+      ? "Messaging session"
+      : formatScheduledLondon(params.scheduledAt);
+  const price =
+    Number.isFinite(params.totalAmount) && params.totalAmount >= 0
+      ? `£${params.totalAmount.toFixed(2)}`
+      : "£0.00";
+  const durationLabel = formatDurationMinutes(
+    params.durationMinutes != null && Number.isFinite(params.durationMinutes)
+      ? params.durationMinutes
+      : null,
+  );
+  const inner = `
+    <p>Hi ${escapeHtml(params.studentName)}, ${escapeHtml(params.senseiName)} has sent you a booking offer for ${escapeHtml(params.serviceName)}.</p>
+    ${detailsTable([
+      { label: "Session type", value: sessionTypeLabel(params.sessionType) },
+      { label: "Date / time", value: when },
+      { label: "Duration", value: durationLabel },
+      { label: "Price", value: price },
+    ])}
+    <p style="margin-top:16px;">This offer expires in 48 hours.</p>
+    ${ctaButton("View offer", params.enquiryUrl)}
   `;
   return emailShell(inner);
 }

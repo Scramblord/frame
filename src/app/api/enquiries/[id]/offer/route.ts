@@ -1,3 +1,4 @@
+import { notifyBookingOfferSentEmail } from "@/lib/email";
 import {
   platformFeeFromTotal,
   totalForBooking,
@@ -229,6 +230,14 @@ export async function POST(request: Request, { params }: Params) {
       { error: messageErr.message ?? "Offer created but message failed" },
       { status: 500 },
     );
+  }
+
+  try {
+    void notifyBookingOfferSentEmail(enquiry.id, insertedBooking.id as string).catch((e) =>
+      console.error("notifyBookingOfferSentEmail", e),
+    );
+  } catch (e) {
+    console.error("notifyBookingOfferSentEmail", e);
   }
 
   return NextResponse.json({

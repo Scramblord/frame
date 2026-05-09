@@ -1,3 +1,4 @@
+import { notifyEnquiryReceivedEmail } from "@/lib/email";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -115,6 +116,14 @@ export async function POST(request: Request) {
       },
       { status: uniqueConflict ? 409 : 500 },
     );
+  }
+
+  try {
+    void notifyEnquiryReceivedEmail(inserted.id as string).catch((e) =>
+      console.error("notifyEnquiryReceivedEmail", e),
+    );
+  } catch (e) {
+    console.error("notifyEnquiryReceivedEmail", e);
   }
 
   return NextResponse.json({ enquiry: inserted });

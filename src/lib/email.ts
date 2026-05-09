@@ -4,6 +4,8 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 import {
   bookingConfirmedExpert,
   bookingConfirmedStudent,
+  bookingOfferSent,
+  enquiryReceived,
 } from "@/lib/email-templates";
 
 const FROM = "Sensei <hello@bookasensei.com>";
@@ -180,4 +182,176 @@ export function formatGbpFromStripeAmount(amountPence: number): string {
     return "0.00";
   }
   return (amountPence / 100).toFixed(2);
+}
+
+/**
+ * Notifies the expert when a student opens a new flexible-timing enquiry.
+ * Does not throw; logs internally.
+ */
+export async function notifyEnquiryReceivedEmail(enquiryId: string): Promise<void> {
+  try {
+    const admin = createServiceRoleClient();
+    const { data: enquiry, error: enqErr } = await admin
+      .from("enquiries")
+      .select("consumer_user_id, expert_user_id, service_id")
+      .eq("id", enquiryId)
+      .maybeSingle();
+
+    if (enqErr || !enquiry) {
+      console.error("notifyEnquiryReceivedEmail: enquiry lookup failed", enqErr);
+      return;
+    }
+
+    const consumerId = enquiry.consumer_user_id as string;
+    const expertId = enquiry.expert_user_id as string;
+    const serviceId = enquiry.service_id as string | undefined;
+
+    let serviceLabel = "Service";
+    if (serviceId) {
+      const { data: svcRow } = await admin
+        .from("services")
+        .select("name")
+        .eq("id", serviceId)
+        .maybeSingle();
+      const n = svcRow?.name;
+      if (typeof n === "string" && n.trim() !== "") {
+        serviceLabel = n.trim();
+      }
+    }
+
+    const [{ data: consumerProf }, { data: expertProf }] = await Promise.all([
+      admin.from("profiles").select("full_name").eq("user_id", consumerId).maybeSingle(),
+      admin.from("profiles").select("full_name").eq("user_id", expertId).maybeSingle(),
+    ]);
+
+    const studentName = displayName(consumerProf?.full_name as string | undefined, "Student");
+    const senseiName = displayName(expertProf?.full_name as string | undefined, "Sensei");
+
+    const expertEmail = await getUserEmail(expertId);
+    if (!expertEmail) {
+      console.error("notifyEnquiryReceivedEmail: no expert email", { enquiryId, expertId });
+      return;
+    }
+
+    const base = siteUrl();
+    const enquiryUrl = `${base}/expert/enquiries/${enquiryId}`;
+
+    await sendEmail({
+      to: expertEmail,
+      subject: `New enquiry from ${studentName}`,
+      html: enquiryReceived({
+        senseiName,
+        studentName,
+        serviceName: serviceLabel,
+        enquiryUrl,
+      }),
+    });
+  } catch (e) {
+    console.error("notifyEnquiryReceivedEmail", e);
+  }
+}
+
+/**
+ * Notifies the consumer when a Sensei sends a booking offer on an enquiry.
+ * Does not throw; logs internally.
+ */
+export async function notifyBookingOfferSentEmail(
+  enquiryId: string,
+  bookingId: string,
+): Promise<void> {
+  try {
+    const admin = createServiceRoleClient();
+    const { data: enquiry, error: enqErr } = await admin
+      .from("enquiries")
+      .select("consumer_user_id, expert_user_id, service_id")
+      .eq("id", enquiryId)
+      .maybeSingle();
+
+    if (enqErr || !enquiry) {
+      console.error("notifyBookingOfferSentEmail: enquiry lookup failed", enqErr);
+      return;
+    }
+
+    const { data: booking, error: bookErr } = await admin
+      .from("bookings")
+      .select(
+        "session_type, scheduled_at, duration_minutes, total_amount, offer_expires_at",
+      )
+      .eq("id", bookingId)
+      .maybeSingle();
+
+    if (bookErr || !booking) {
+      console.error("notifyBookingOfferSentEmail: booking lookup failed", bookErr);
+      return;
+    }
+
+    const consumerId = enquiry.consumer_user_id as string;
+    const expertId = enquiry.expert_user_id as string;
+    const serviceId = enquiry.service_id as string | undefined;
+
+    let serviceLabel = "Service";
+    if (serviceId) {
+      const { data: svcRow } = await admin
+        .from("services")
+        .select("name")
+        .eq("id", serviceId)
+        .maybeSingle();
+      const n = svcRow?.name;
+      if (typeof n === "string" && n.trim() !== "") {
+        serviceLabel = n.trim();
+      }
+    }
+
+    const [{ data: consumerProf }, { data: expertProf }] = await Promise.all([
+      admin.from("profiles").select("full_name").eq("user_id", consumerId).maybeSingle(),
+      admin.from("profiles").select("full_name").eq("user_id", expertId).maybeSingle(),
+    ]);
+
+    const studentName = displayName(consumerProf?.full_name as string | undefined, "Student");
+    const senseiName = displayName(expertProf?.full_name as string | undefined, "Sensei");
+
+    const consumerEmail = await getUserEmail(consumerId);
+    if (!consumerEmail) {
+      console.error("notifyBookingOfferSentEmail: no consumer email", {
+        enquiryId,
+        consumerId,
+      });
+      return;
+    }
+
+    const sessionType = String(booking.session_type ?? "");
+    const scheduledAt = booking.scheduled_at as string | null;
+    const durationMinutes =
+      booking.duration_minutes != null && Number.isFinite(Number(booking.duration_minutes))
+        ? Number(booking.duration_minutes)
+        : null;
+    const rawTotal = booking.total_amount;
+    const totalAmount =
+      typeof rawTotal === "number"
+        ? rawTotal
+        : typeof rawTotal === "string"
+          ? Number.parseFloat(rawTotal)
+          : Number.NaN;
+
+    const base = siteUrl();
+    const enquiryUrl = `${base}/enquiries/${enquiryId}`;
+
+    await sendEmail({
+      to: consumerEmail,
+      subject: `You have a booking offer from ${senseiName}`,
+      html: bookingOfferSent({
+        studentName,
+        senseiName,
+        serviceName: serviceLabel,
+        sessionType,
+        scheduledAt,
+        durationMinutes,
+        totalAmount: Number.isFinite(totalAmount) ? totalAmount : 0,
+        offerExpiresAt: booking.offer_expires_at as string | null | undefined,
+        enquiryUrl,
+      }),
+    });
+  } catch (e) {
+    console.error("notifyBookingOfferSentEmail", e);
+  }
 }

@@ -200,7 +200,7 @@ export default async function ExpertPublicPage({ params }: PageProps) {
         <section className="mb-6 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-sm)]">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_auto] md:items-start">
             <div>
-              <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-700">
+              <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-full bg-zinc-900">
                 {profile.avatar_url ? (
                   <Image
                     src={profile.avatar_url}
@@ -211,7 +211,7 @@ export default async function ExpertPublicPage({ params }: PageProps) {
                     priority
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-xl font-bold text-zinc-700">
+                  <div className="flex h-full w-full items-center justify-center text-xl font-bold text-white">
                     {initials}
                   </div>
                 )}

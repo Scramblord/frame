@@ -126,7 +126,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                     className="block rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] transition hover:border-[var(--color-border-strong)]"
                   >
                     <div className="flex gap-4">
-                      <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-zinc-200">
+                      <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-zinc-900">
                         {profile.avatar_url ? (
                           <Image
                             src={profile.avatar_url}
@@ -136,7 +136,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                             sizes="44px"
                           />
                         ) : (
-                          <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-zinc-700">
+                          <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-white">
                             {initials}
                           </div>
                         )}

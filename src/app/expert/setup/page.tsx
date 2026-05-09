@@ -1,9 +1,21 @@
 "use client";
 
+import AvatarUpload from "@/components/AvatarUpload";
+import SyncSenseiModeOnMount from "@/components/SyncSenseiModeOnMount";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import SyncSenseiModeOnMount from "@/components/SyncSenseiModeOnMount";
+
+function initialsFromDisplayName(name: string): string | null {
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  return trimmed
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
 
 const SESSION_OPTIONS: number[] = [];
 for (let m = 15; m <= 8 * 60; m += 15) {
@@ -68,6 +80,9 @@ export default function ExpertSetupPage() {
 
   const [timezones, setTimezones] = useState<string[]>(["UTC"]);
 
+  const [userId, setUserId] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [profileDisplayName, setProfileDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
@@ -104,9 +119,11 @@ export default function ExpertSetupPage() {
       return;
     }
 
+    setUserId(user.id);
+
     const { data: profile } = await supabase
       .from("profiles")
-      .select("id")
+      .select("id, full_name, avatar_url")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -114,6 +131,11 @@ export default function ExpertSetupPage() {
       router.replace("/onboarding");
       return;
     }
+
+    setAvatarUrl(profile.avatar_url ?? null);
+    setProfileDisplayName(
+      typeof profile.full_name === "string" ? profile.full_name : "",
+    );
 
     const { data: row } = await supabase
       .from("expert_profiles")
@@ -526,6 +548,25 @@ export default function ExpertSetupPage() {
             onSubmit={(e) => void handleSubmit(e)}
             className="space-y-8 rounded-2xl border border-zinc-200/80 bg-white/90 p-6 shadow-xl shadow-zinc-900/5 backdrop-blur-sm dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-black/40 sm:p-8"
           >
+            {userId ? (
+              <div>
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Profile photo
+                </span>
+                <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                  Shown on your public profile, search results, and bookings.
+                </p>
+                <div className="mt-3">
+                  <AvatarUpload
+                    userId={userId}
+                    currentAvatarUrl={avatarUrl}
+                    currentInitials={initialsFromDisplayName(profileDisplayName)}
+                    onUploadComplete={(url) => setAvatarUrl(url)}
+                  />
+                </div>
+              </div>
+            ) : null}
+
             <div>
               <label
                 htmlFor="bio"

@@ -1,5 +1,6 @@
 import Navbar from "@/components/Navbar";
 import { createClient } from "@/lib/supabase/server";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -43,9 +44,15 @@ export default async function ConsumerEnquiriesPage() {
     expertIds.length > 0
       ? supabase
           .from("profiles")
-          .select("user_id, full_name")
+          .select("user_id, full_name, avatar_url")
           .in("user_id", expertIds)
-      : { data: [] as { user_id: string; full_name: string | null }[] },
+      : {
+          data: [] as {
+            user_id: string;
+            full_name: string | null;
+            avatar_url: string | null;
+          }[],
+        },
     serviceIds.length > 0
       ? supabase.from("services").select("id, name").in("id", serviceIds)
       : { data: [] as { id: string; name: string }[] },
@@ -64,7 +71,7 @@ export default async function ConsumerEnquiriesPage() {
       });
     }
   }
-  const expertMap = new Map((experts ?? []).map((p) => [p.user_id, p.full_name]));
+  const expertMap = new Map((experts ?? []).map((p) => [p.user_id, p]));
   const serviceMap = new Map((services ?? []).map((s) => [s.id, s.name]));
 
   return (
@@ -91,21 +98,45 @@ export default async function ConsumerEnquiriesPage() {
                   ? `${msg.content.slice(0, 80)}...`
                   : msg.content
                 : "No messages yet";
+              const expertRow = expertMap.get(enquiry.expert_user_id);
+              const expertName = expertRow?.full_name?.trim() ?? "Sensei";
+              const expertInitials = expertName
+                .split(/\s+/)
+                .map((w: string) => w[0])
+                .join("")
+                .slice(0, 2)
+                .toUpperCase();
               return (
                 <li key={enquiry.id}>
                   <Link
                     href={`/enquiries/${enquiry.id}`}
                     className="block rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] transition hover:border-[var(--color-border-strong)]"
                   >
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-semibold text-[var(--color-text)]">
-                          {expertMap.get(enquiry.expert_user_id) ?? "Sensei"} ·{" "}
-                          {serviceMap.get(enquiry.service_id) ?? "Service"}
-                        </p>
-                        <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-                          {preview}
-                        </p>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="flex min-w-0 flex-1 gap-3">
+                        <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-zinc-900">
+                          {expertRow?.avatar_url ? (
+                            <Image
+                              src={expertRow.avatar_url}
+                              alt=""
+                              fill
+                              className="object-cover"
+                              sizes="44px"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-white">
+                              {expertInitials}
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-[var(--color-text)]">
+                            {expertName} · {serviceMap.get(enquiry.service_id) ?? "Service"}
+                          </p>
+                          <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                            {preview}
+                          </p>
+                        </div>
                       </div>
                       <div className="text-right">
                         <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-accent)]">

@@ -221,24 +221,45 @@ export default function NavbarClient({
                   onClick={closeMenu}
                   className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
                 >
-                  Setup
+                  Profile & Services
+                </Link>
+                <Link
+                  href="/settings"
+                  onClick={closeMenu}
+                  className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
+                >
+                  Settings
                 </Link>
               </>
             ) : (
               <>
                 <Link
+                  href="/dashboard"
+                  onClick={closeMenu}
+                  className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
+                >
+                  Dashboard
+                </Link>
+                <Link
                   href="/bookings"
                   onClick={closeMenu}
                   className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
                 >
-                  {itemLabelWithBadge("My Bookings", notificationCounts?.consumerBookings)}
+                  {itemLabelWithBadge("Bookings", notificationCounts?.consumerBookings)}
                 </Link>
                 <Link
                   href="/enquiries"
                   onClick={closeMenu}
                   className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
                 >
-                  {itemLabelWithBadge("My Enquiries", notificationCounts?.consumerEnquiries)}
+                  {itemLabelWithBadge("Enquiries", notificationCounts?.consumerEnquiries)}
+                </Link>
+                <Link
+                  href="/settings"
+                  onClick={closeMenu}
+                  className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
+                >
+                  Settings
                 </Link>
               </>
             )}

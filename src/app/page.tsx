@@ -3,11 +3,13 @@ import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
+import { FoundingSenseiBadge } from "@/components/FoundingSenseiBadge";
 import {
   fetchExpertsWithProfiles,
   formatGbp,
   lowestPriceForService,
 } from "@/lib/experts-marketplace";
+import { fetchFoundingSenseiUserIds } from "@/lib/founding-sensei";
 
 export const metadata: Metadata = {
   title: "Sensei — Book Senseis for live sessions",
@@ -46,7 +48,10 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const experts = await fetchExpertsWithProfiles(supabase);
+  const [experts, foundingUserIds] = await Promise.all([
+    fetchExpertsWithProfiles(supabase),
+    fetchFoundingSenseiUserIds(supabase),
+  ]);
   const expertsWithServices = experts.filter((expert) => {
     const services = expert.services ?? [];
     return services.some((service) => service.is_active !== false);
@@ -237,7 +242,14 @@ export default async function Home() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="truncate text-base font-semibold text-[var(--color-text)]">{sensei.fullName}</h3>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <h3 className="truncate text-base font-semibold text-[var(--color-text)]">
+                          {sensei.fullName}
+                        </h3>
+                        {foundingUserIds.has(sensei.userId) ? (
+                          <FoundingSenseiBadge size="sm" className="shrink-0" />
+                        ) : null}
+                      </div>
                       <p className="mt-1 truncate text-sm text-[var(--color-text-muted)]">
                         {sensei.firstServiceName ?? "Service details on profile"}
                       </p>

@@ -3,12 +3,14 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
+import { FoundingSenseiBadge } from "@/components/FoundingSenseiBadge";
 import {
   fetchExpertsWithProfiles,
   formatGbp,
   matchingServiceNameForSearch,
   startingPrice,
 } from "@/lib/experts-marketplace";
+import { fetchFoundingSenseiUserIds } from "@/lib/founding-sensei";
 
 export const metadata: Metadata = {
   title: "Find Senseis — Sensei",
@@ -26,7 +28,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const supabase = await createClient();
   const trimmed = (q ?? "").trim();
 
-  const experts = await fetchExpertsWithProfiles(supabase, trimmed);
+  const [experts, foundingUserIds] = await Promise.all([
+    fetchExpertsWithProfiles(supabase, trimmed),
+    fetchFoundingSenseiUserIds(supabase),
+  ]);
   const expertIds = experts.map((e) => e.user_id);
   const { data: discountRows } =
     expertIds.length > 0
@@ -144,9 +149,14 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <h2 className="text-sm font-semibold text-[var(--color-text)]">
-                              {name}
-                            </h2>
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                              <h2 className="text-sm font-semibold text-[var(--color-text)]">
+                                {name}
+                              </h2>
+                              {foundingUserIds.has(ep.user_id as string) ? (
+                                <FoundingSenseiBadge size="sm" className="shrink-0" />
+                              ) : null}
+                            </div>
                             {matchedServiceName ? (
                               <p className="mt-1 text-xs text-[var(--color-text-muted)]">
                                 <span className="font-medium text-[var(--color-text)]">

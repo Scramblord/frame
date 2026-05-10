@@ -13,6 +13,8 @@ import {
 import DashboardAlertStrip, {
   type DashboardAlertItem,
 } from "@/components/DashboardAlertStrip";
+import { FoundingSenseiBadge } from "@/components/FoundingSenseiBadge";
+import { fetchFoundingSenseiUserIds } from "@/lib/founding-sensei";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -48,6 +50,9 @@ export default async function ExpertDashboardPage() {
   if (!expert) {
     redirect("/expert/setup");
   }
+
+  const foundingUserIds = await fetchFoundingSenseiUserIds(supabase);
+  const isFoundingSensei = foundingUserIds.has(user.id);
 
   const nowIso = new Date().toISOString();
   const next24Iso = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
@@ -302,6 +307,17 @@ export default async function ExpertDashboardPage() {
       <ActiveSessionBanner />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 pb-16 pt-10 sm:px-6">
         <DashboardAlertStrip storageScope={`expert-${user.id}`} alerts={dashboardAlerts} />
+        {isFoundingSensei ? (
+          <div className="mb-6 rounded-[var(--radius-md)] border border-amber-300/80 bg-gradient-to-br from-amber-50 to-amber-100/90 px-4 py-4 shadow-[var(--shadow-sm)] dark:border-amber-700/50 dark:from-amber-950/50 dark:to-amber-900/30">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+              <FoundingSenseiBadge size="md" className="w-fit shrink-0" />
+              <p className="text-sm leading-relaxed text-amber-950 dark:text-amber-50">
+                You&apos;re a Founding Sensei — your 5% commission rate is locked in for 2
+                years.
+              </p>
+            </div>
+          </div>
+        ) : null}
         <header>
           <h1 className="mb-1 text-3xl font-bold tracking-tight text-[var(--color-text)]">
             {greeting}, {firstName}

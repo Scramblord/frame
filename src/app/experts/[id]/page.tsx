@@ -14,7 +14,9 @@ import {
   type WeeklyAvailabilityRow,
 } from "@/lib/expert-weekly-availability";
 import EnquireButton from "@/components/EnquireButton";
+import { FoundingSenseiBadge } from "@/components/FoundingSenseiBadge";
 import Navbar from "@/components/Navbar";
+import { fetchFoundingSenseiUserIds } from "@/lib/founding-sensei";
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -86,6 +88,9 @@ export default async function ExpertPublicPage({ params }: PageProps) {
   if (!profile) {
     notFound();
   }
+
+  const foundingUserIds = await fetchFoundingSenseiUserIds(supabase);
+  const isFoundingSensei = foundingUserIds.has(profile.user_id);
 
   const { data: statsRows, error: rpcError } = await supabase.rpc(
     "get_expert_review_stats",
@@ -216,9 +221,14 @@ export default async function ExpertPublicPage({ params }: PageProps) {
                   </div>
                 )}
               </div>
-              <h1 className="mt-3 text-2xl font-bold tracking-tight text-[var(--color-text)]">
-                {displayName}
-              </h1>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3">
+                <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text)]">
+                  {displayName}
+                </h1>
+                {isFoundingSensei ? (
+                  <FoundingSenseiBadge size="md" className="w-fit shrink-0" />
+                ) : null}
+              </div>
               {profile.location || expert?.timezone ? (
                 <p className="mt-1 text-sm text-[var(--color-text-muted)]">
                   {[profile.location, expert?.timezone].filter(Boolean).join(" · ")}

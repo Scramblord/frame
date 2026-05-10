@@ -11,6 +11,16 @@ import {
 } from "@/lib/experts-marketplace";
 import { fetchFoundingSenseiUserIds } from "@/lib/founding-sensei";
 
+/** Auth user id for featured cards — same as founding set (`expert_profiles.user_id` / `profiles.user_id`). */
+function featuredCardAuthUserId(
+  expert: { user_id: string },
+  profile: { user_id?: string },
+): string {
+  const fromProfile = String(profile.user_id ?? "").trim();
+  if (fromProfile) return fromProfile;
+  return String(expert.user_id ?? "").trim();
+}
+
 export const metadata: Metadata = {
   title: "Sensei — Book Senseis for live sessions",
   description:
@@ -57,7 +67,13 @@ export default async function Home() {
     return services.some((service) => service.is_active !== false);
   });
   const featuredExperts = expertsWithServices.slice(0, 8);
-  const featuredUserIds = featuredExperts.map((expert) => expert.user_id);
+  const featuredUserIds = featuredExperts
+    .map((expert) => {
+      const p = expert.profile;
+      if (!p?.id) return null;
+      return featuredCardAuthUserId(expert, p as { user_id?: string });
+    })
+    .filter((id): id is string => Boolean(id && id.length > 0));
   const { data: featuredDiscountRows } =
     featuredUserIds.length > 0
       ? await supabase
@@ -113,13 +129,14 @@ export default async function Home() {
           (lowest, price) => (lowest == null || price < lowest ? price : lowest),
           null,
         );
+      const userId = featuredCardAuthUserId(expert, profile as { user_id?: string });
       return {
-        userId: expert.user_id,
+        userId,
         profileId: profile.id,
         fullName: profile.full_name?.trim() || "Sensei",
         avatarUrl: profile.avatar_url,
         firstServiceName: firstService?.name ?? null,
-        ratingAvg: ratingByUserId.get(expert.user_id) ?? null,
+        ratingAvg: ratingByUserId.get(userId) ?? null,
         offersMessaging: services.some((service) => service.offers_messaging),
         offersAudio: services.some((service) => service.offers_audio),
         offersVideo: services.some((service) => service.offers_video),

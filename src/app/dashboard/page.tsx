@@ -6,16 +6,53 @@ import SyncSenseiModeOnMount from "@/components/SyncSenseiModeOnMount";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { FoundingSenseiBadge } from "@/components/FoundingSenseiBadge";
 import {
   fetchExpertsWithProfiles,
   formatGbp,
   startingPrice,
 } from "@/lib/experts-marketplace";
+import {
+  fetchFoundingSenseiUserIds,
+  marketplaceExpertAuthUserId,
+} from "@/lib/founding-sensei";
 import DashboardAlertStrip, {
   type DashboardAlertItem,
 } from "@/components/DashboardAlertStrip";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Match founding Set the same way Supabase stores ids: trim, then try original + lower/upper
+ * so we never miss due to key shape on the spread `expert_profiles` row (`user_id` vs rare aliases).
+ */
+function dashboardExpertIsFounding(
+  foundingUserIds: Set<string>,
+  expertRow: Record<string, unknown>,
+  profileRow: Record<string, unknown>,
+  authUserIdFromHelper: string,
+): boolean {
+  const raw = [
+    authUserIdFromHelper,
+    expertRow.user_id,
+    expertRow.userId,
+    profileRow.user_id,
+    profileRow.userId,
+  ];
+  const keys = new Set<string>();
+  for (const v of raw) {
+    if (v == null) continue;
+    const s = String(v).trim();
+    if (!s) continue;
+    keys.add(s);
+    keys.add(s.toLowerCase());
+    keys.add(s.toUpperCase());
+  }
+  for (const k of keys) {
+    if (foundingUserIds.has(k)) return true;
+  }
+  return false;
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -98,8 +135,18 @@ export default async function DashboardPage() {
     upcomingRows,
   );
 
-  const featuredExperts = await fetchExpertsWithProfiles(supabase);
-  const featuredIds = featuredExperts.map((e) => e.user_id);
+  const [featuredExperts, foundingUserIds] = await Promise.all([
+    fetchExpertsWithProfiles(supabase),
+    fetchFoundingSenseiUserIds(supabase),
+  ]);
+  const featuredIds = featuredExperts
+    .map((e) => {
+      const p = e.profile;
+      if (!p?.id) return null;
+      const id = marketplaceExpertAuthUserId(e, p as { user_id?: string });
+      return id.length > 0 ? id : null;
+    })
+    .filter((id): id is string => Boolean(id));
   const { data: featuredDiscountRows } =
     featuredIds.length > 0
       ? await supabase
@@ -117,7 +164,13 @@ export default async function DashboardPage() {
       .filter((d) => (d.start_date == null || d.start_date <= nowIso))
       .filter((d) => (d.end_date == null || d.end_date >= nowIso))
       .filter((d) => d.max_uses == null || (d.current_uses ?? 0) < d.max_uses)
-      .map((d) => d.expert_user_id as string),
+      .flatMap((d) => {
+        const k =
+          typeof d.expert_user_id === "string"
+            ? d.expert_user_id.trim()
+            : String(d.expert_user_id ?? "").trim();
+        return k.length > 0 ? [k] : [];
+      }),
   );
 
   return (
@@ -190,8 +243,15 @@ export default async function DashboardPage() {
           ) : (
             <ul className="mt-6 grid gap-4 sm:grid-cols-2">
               {featuredExperts.map((ep) => {
+                /**
+                 * `ep` = ExpertWithProfile: spread `expert_profiles` (+ profile, services, stats).
+                 * Needed for cards: ep.user_id (auth uid), ep.keywords, ep.bio, ep.review_count,
+                 * ep.avg_rating, ep.profile { id, full_name, avatar_url } (+ runtime user_id).
+                 */
+                const epRow = ep as unknown as Record<string, unknown>;
                 const p = ep.profile;
                 if (!p?.id) return null;
+                const profileRow = p as unknown as Record<string, unknown>;
                 const name = p.full_name?.trim() || "Sensei";
                 const initials = name
                   .split(/\s+/)
@@ -209,11 +269,21 @@ export default async function DashboardPage() {
                   typeof ep.review_count === "number" ? ep.review_count : 0;
                 const avgRating =
                   typeof ep.avg_rating === "number" ? ep.avg_rating : null;
+                const authUserId = marketplaceExpertAuthUserId(
+                  ep,
+                  p as { user_id?: string },
+                );
+                const showFoundingBadge = dashboardExpertIsFounding(
+                  foundingUserIds,
+                  epRow,
+                  profileRow,
+                  authUserId,
+                );
 
                 return (
-                  <li key={ep.user_id as string}>
+                  <li key={authUserId || String(epRow.user_id ?? epRow.userId ?? "")}>
                     <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)]">
-                      <div className="flex items-start gap-3">
+                      <div className="flex min-w-0 items-start gap-3">
                         <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-700">
                         {p.avatar_url ? (
                           <img
@@ -229,11 +299,16 @@ export default async function DashboardPage() {
                           </div>
                         )}
                         </div>
-                        <div className="flex items-start justify-between gap-2">
+                        <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-semibold text-[var(--color-text)]">
                               {name}
                             </p>
+                            {showFoundingBadge ? (
+                              <div className="mt-1.5">
+                                <FoundingSenseiBadge size="sm" className="w-fit max-w-full" />
+                              </div>
+                            ) : null}
                             {tags.length > 0 ? (
                               <ul className="mt-2 flex flex-wrap gap-1">
                                 {tags.map((tag: string) => (
@@ -248,7 +323,7 @@ export default async function DashboardPage() {
                             ) : null}
                           </div>
                           {fromPrice != null ? (
-                            <span className="shrink-0 text-sm font-semibold text-[var(--color-text)]">
+                            <span className="shrink-0 self-start text-sm font-semibold text-[var(--color-text)]">
                               From {formatGbp(fromPrice)}
                             </span>
                           ) : null}
@@ -272,7 +347,7 @@ export default async function DashboardPage() {
                           View profile →
                         </Link>
                       </div>
-                      {discountExpertIds.has(ep.user_id as string) ? (
+                      {authUserId && discountExpertIds.has(authUserId) ? (
                         <p className="mt-2 inline-flex rounded-full border border-[var(--color-accent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">
                           Discount available
                         </p>

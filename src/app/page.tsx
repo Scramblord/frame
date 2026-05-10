@@ -9,17 +9,10 @@ import {
   formatGbp,
   lowestPriceForService,
 } from "@/lib/experts-marketplace";
-import { fetchFoundingSenseiUserIds } from "@/lib/founding-sensei";
-
-/** Auth user id for featured cards — same as founding set (`expert_profiles.user_id` / `profiles.user_id`). */
-function featuredCardAuthUserId(
-  expert: { user_id: string },
-  profile: { user_id?: string },
-): string {
-  const fromProfile = String(profile.user_id ?? "").trim();
-  if (fromProfile) return fromProfile;
-  return String(expert.user_id ?? "").trim();
-}
+import {
+  fetchFoundingSenseiUserIds,
+  marketplaceExpertAuthUserId,
+} from "@/lib/founding-sensei";
 
 export const metadata: Metadata = {
   title: "Sensei — Book Senseis for live sessions",
@@ -71,7 +64,7 @@ export default async function Home() {
     .map((expert) => {
       const p = expert.profile;
       if (!p?.id) return null;
-      return featuredCardAuthUserId(expert, p as { user_id?: string });
+      return marketplaceExpertAuthUserId(expert, p as { user_id?: string });
     })
     .filter((id): id is string => Boolean(id && id.length > 0));
   const { data: featuredDiscountRows } =
@@ -129,7 +122,7 @@ export default async function Home() {
           (lowest, price) => (lowest == null || price < lowest ? price : lowest),
           null,
         );
-      const userId = featuredCardAuthUserId(expert, profile as { user_id?: string });
+      const userId = marketplaceExpertAuthUserId(expert, profile as { user_id?: string });
       return {
         userId,
         profileId: profile.id,

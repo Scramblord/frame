@@ -1,7 +1,9 @@
+import { LiveNowBadge } from "@/components/LiveNowBadge";
 import {
   formatBookingDateTime,
   formatDurationMinutes,
   formatStatusLabel,
+  isBookingLiveNow,
   sessionTypeIcon,
   sessionTypeLabel,
   statusBadgeStyles,
@@ -43,6 +45,7 @@ export function ConsumerBookingCard({
     isMessagingSession && status === "confirmed"
       ? "Awaiting reply"
       : formatStatusLabel(status);
+  const showLiveNow = isBookingLiveNow(status, scheduledAt);
   const cardInner = (
     <div className="flex gap-4">
       <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800">
@@ -62,14 +65,17 @@ export function ConsumerBookingCard({
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <p className="font-semibold text-zinc-900 dark:text-zinc-50">
+          <p className="min-w-0 font-semibold text-zinc-900 dark:text-zinc-50">
             {expertName}
           </p>
-          <span
-            className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusBadgeStyles(status)}`}
-          >
-            {statusLabel}
-          </span>
+          <div className="flex max-w-full shrink-0 flex-wrap items-center justify-end gap-2">
+            {showLiveNow ? <LiveNowBadge /> : null}
+            <span
+              className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusBadgeStyles(status)}`}
+            >
+              {statusLabel}
+            </span>
+          </div>
         </div>
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
           {serviceName}

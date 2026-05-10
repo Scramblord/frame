@@ -1,6 +1,7 @@
 "use client";
 
 import { ExpertBookingCard, type ExpertBookingCardProps } from "@/components/ExpertBookingCard";
+import { compareUpcomingBookings } from "@/lib/booking-display";
 import { useMemo, useState } from "react";
 
 type FormatFilter = "all" | "video-audio" | "messaging";
@@ -15,21 +16,13 @@ function isMessagingSession(sessionType: string): boolean {
   return sessionType === "messaging" || sessionType === "urgent_messaging";
 }
 
-function sortByScheduledAtAsc(items: ExpertBookingCardProps[]): ExpertBookingCardProps[] {
-  return [...items].sort((a, b) => {
-    const ta =
-      a.scheduledAt != null
-        ? new Date(a.scheduledAt).getTime()
-        : Number.POSITIVE_INFINITY;
-    const tb =
-      b.scheduledAt != null
-        ? new Date(b.scheduledAt).getTime()
-        : Number.POSITIVE_INFINITY;
-    if (!Number.isFinite(ta) && !Number.isFinite(tb)) return 0;
-    if (!Number.isFinite(ta)) return 1;
-    if (!Number.isFinite(tb)) return -1;
-    return ta - tb;
-  });
+function sortUpcoming(items: ExpertBookingCardProps[]): ExpertBookingCardProps[] {
+  return [...items].sort((a, b) =>
+    compareUpcomingBookings(
+      { status: a.status, scheduledAt: a.scheduledAt },
+      { status: b.status, scheduledAt: b.scheduledAt },
+    ),
+  );
 }
 
 function sortByScheduledAtDesc(items: ExpertBookingCardProps[]): ExpertBookingCardProps[] {
@@ -66,7 +59,7 @@ export default function BookingsView({ allBookings, isPast }: BookingsViewProps)
       list = list.filter((booking) => booking.status === statusFilter);
     }
 
-    return isPast ? sortByScheduledAtDesc(list) : sortByScheduledAtAsc(list);
+    return isPast ? sortByScheduledAtDesc(list) : sortUpcoming(list);
   }, [allBookings, formatFilter, isPast, statusFilter]);
 
   return (

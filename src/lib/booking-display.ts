@@ -71,3 +71,38 @@ export function formatDurationMinutes(minutes: number | null): string {
   if (minutes == null || !Number.isFinite(minutes)) return "—";
   return `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
 }
+
+/** Session is live: in progress, or confirmed and the scheduled start has passed. */
+export function isBookingLiveNow(
+  status: string,
+  scheduledAt: string | null,
+  now: Date = new Date(),
+): boolean {
+  if (status === "in_progress") return true;
+  if (status !== "confirmed" || scheduledAt == null) return false;
+  return new Date(scheduledAt).getTime() <= now.getTime();
+}
+
+/** Sort upcoming: live sessions first, then by scheduled time ascending. */
+export function compareUpcomingBookings(
+  a: { status: string; scheduledAt: string | null },
+  b: { status: string; scheduledAt: string | null },
+  now: Date = new Date(),
+): number {
+  const liveA = isBookingLiveNow(a.status, a.scheduledAt, now);
+  const liveB = isBookingLiveNow(b.status, b.scheduledAt, now);
+  if (liveA !== liveB) return liveA ? -1 : 1;
+
+  const ta =
+    a.scheduledAt != null
+      ? new Date(a.scheduledAt).getTime()
+      : Number.POSITIVE_INFINITY;
+  const tb =
+    b.scheduledAt != null
+      ? new Date(b.scheduledAt).getTime()
+      : Number.POSITIVE_INFINITY;
+  if (!Number.isFinite(ta) && !Number.isFinite(tb)) return 0;
+  if (!Number.isFinite(ta)) return 1;
+  if (!Number.isFinite(tb)) return -1;
+  return ta - tb;
+}

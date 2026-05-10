@@ -1,7 +1,9 @@
+import { LiveNowBadge } from "@/components/LiveNowBadge";
 import {
   formatBookingDateTime,
   formatDurationMinutes,
   formatStatusLabel,
+  isBookingLiveNow,
   sessionTypeIcon,
   sessionTypeLabel,
   statusBadgeStyles,
@@ -40,6 +42,7 @@ export function ExpertBookingCard({
     isMessagingSession && status === "confirmed"
       ? "Awaiting reply"
       : formatStatusLabel(status);
+  const showLiveNow = isBookingLiveNow(status, scheduledAt);
   return (
     <Link
       href={`/expert/bookings/${bookingId}`}
@@ -63,14 +66,17 @@ export function ExpertBookingCard({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-2">
-            <p className="font-semibold text-zinc-900 dark:text-zinc-50">
+            <p className="min-w-0 font-semibold text-zinc-900 dark:text-zinc-50">
               {consumerName}
             </p>
-            <span
-              className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusBadgeStyles(status)}`}
-            >
-              {statusLabel}
-            </span>
+            <div className="flex max-w-full shrink-0 flex-wrap items-center justify-end gap-2">
+              {showLiveNow ? <LiveNowBadge /> : null}
+              <span
+                className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusBadgeStyles(status)}`}
+              >
+                {statusLabel}
+              </span>
+            </div>
           </div>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
             {serviceName}

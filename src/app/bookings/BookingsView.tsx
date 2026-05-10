@@ -2,6 +2,7 @@
 
 import { ConsumerBookingCard, type ConsumerBookingCardProps } from "@/components/ConsumerBookingCard";
 import {
+  compareUpcomingBookings,
   formatBookingDateTime,
   formatDurationMinutes,
   formatStatusLabel,
@@ -25,21 +26,13 @@ function isMessagingSession(sessionType: string): boolean {
   return sessionType === "messaging" || sessionType === "urgent_messaging";
 }
 
-function sortByScheduledAtAsc(items: ConsumerBookingCardProps[]): ConsumerBookingCardProps[] {
-  return [...items].sort((a, b) => {
-    const ta =
-      a.scheduledAt != null
-        ? new Date(a.scheduledAt).getTime()
-        : Number.POSITIVE_INFINITY;
-    const tb =
-      b.scheduledAt != null
-        ? new Date(b.scheduledAt).getTime()
-        : Number.POSITIVE_INFINITY;
-    if (!Number.isFinite(ta) && !Number.isFinite(tb)) return 0;
-    if (!Number.isFinite(ta)) return 1;
-    if (!Number.isFinite(tb)) return -1;
-    return ta - tb;
-  });
+function sortUpcoming(items: ConsumerBookingCardProps[]): ConsumerBookingCardProps[] {
+  return [...items].sort((a, b) =>
+    compareUpcomingBookings(
+      { status: a.status, scheduledAt: a.scheduledAt },
+      { status: b.status, scheduledAt: b.scheduledAt },
+    ),
+  );
 }
 
 function sortByScheduledAtDesc(items: ConsumerBookingCardProps[]): ConsumerBookingCardProps[] {
@@ -76,7 +69,7 @@ export default function BookingsView({ allBookings, isPast }: BookingsViewProps)
       list = list.filter((booking) => booking.status === statusFilter);
     }
 
-    return isPast ? sortByScheduledAtDesc(list) : sortByScheduledAtAsc(list);
+    return isPast ? sortByScheduledAtDesc(list) : sortUpcoming(list);
   }, [allBookings, formatFilter, isPast, statusFilter]);
 
   return (

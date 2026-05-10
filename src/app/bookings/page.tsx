@@ -35,14 +35,15 @@ export default async function ConsumerBookingsPage({ searchParams }: PageProps) 
   let cards: Awaited<ReturnType<typeof enrichBookingsForConsumerCards>> = [];
 
   if (tab === "upcoming") {
+    const upcomingScheduledOr = `and(scheduled_at.gte.${nowIso},status.in.(confirmed,pending_payment,in_progress)),status.eq.in_progress,and(status.eq.confirmed,scheduled_at.lte.${nowIso})`;
+
     const [{ data: scheduledRows }, { data: messagingRows }] = await Promise.all([
       supabase
         .from("bookings")
         .select(SELECT_FIELDS)
         .eq("consumer_user_id", user.id)
         .not("scheduled_at", "is", null)
-        .gte("scheduled_at", nowIso)
-        .in("status", ["confirmed", "pending_payment", "in_progress"])
+        .or(upcomingScheduledOr)
         .order("scheduled_at", { ascending: true }),
       supabase
         .from("bookings")

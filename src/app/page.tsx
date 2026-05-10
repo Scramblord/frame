@@ -349,13 +349,6 @@ export default async function Home() {
           </Link>
         </section>
       </main>
-
-      <footer className="border-t border-[var(--color-border)] bg-[var(--color-surface)]">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-6 text-xs text-[var(--color-text-muted)] sm:px-6 sm:text-sm">
-          <p>© 2026 Sensei. All rights reserved. | Terms | Privacy</p>
-          <p>Sensei is a booking platform. We do not employ or endorse any Sensei listed on the platform.</p>
-        </div>
-      </footer>
     </div>
   );
 }

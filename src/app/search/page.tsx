@@ -1,16 +1,19 @@
 import { createClient } from "@/lib/supabase/server";
-import Image from "next/image";
-import Link from "next/link";
 import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
-import { FoundingSenseiBadge } from "@/components/FoundingSenseiBadge";
 import {
   fetchExpertsWithProfiles,
-  formatGbp,
   matchingServiceNameForSearch,
   startingPrice,
+  type ExpertWithProfile,
 } from "@/lib/experts-marketplace";
-import { fetchFoundingSenseiUserIds } from "@/lib/founding-sensei";
+import {
+  expertMatchesFoundingSet,
+  fetchFoundingSenseiUserIds,
+} from "@/lib/founding-sensei";
+import type { SearchExpertSerialized } from "@/app/search/search-types";
+import SearchBrowseClient from "@/app/search/SearchBrowseClient";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "Find Senseis — Sensei",
@@ -23,6 +26,68 @@ type SearchPageProps = {
   searchParams: Promise<{ q?: string }>;
 };
 
+function serializeSearchExperts(
+  experts: ExpertWithProfile[],
+  keyword: string,
+  expertsWithAvailability: Set<string>,
+  foundingIds: Set<string>,
+): SearchExpertSerialized[] {
+  return experts.map((ep, relevanceOrder) => {
+    const profile = ep.profile;
+    const svcs = ep.services ?? [];
+    const name = profile?.full_name?.trim() || "Sensei";
+    const initials = name
+      .split(/\s+/)
+      .map((w: string) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+
+    return {
+      userId: ep.user_id,
+      profileId: profile?.id ?? "",
+      displayName: name,
+      initials,
+      avatarUrl: profile?.avatar_url ?? null,
+      keywords: ep.keywords ?? [],
+      matchedServiceName: keyword.trim()
+        ? matchingServiceNameForSearch(ep, keyword)
+        : null,
+      fromPrice: startingPrice(ep),
+      avgRating:
+        typeof ep.avg_rating === "number" && Number.isFinite(ep.avg_rating)
+          ? ep.avg_rating
+          : ep.avg_rating != null
+            ? Number(ep.avg_rating)
+            : null,
+      reviewCount: typeof ep.review_count === "number" ? ep.review_count : 0,
+      offersVideo: svcs.some((s) => s.offers_video),
+      offersAudio: svcs.some((s) => s.offers_audio),
+      offersMessaging: svcs.some(
+        (s) =>
+          s.offers_messaging ||
+          (s as { urgent_messaging_enabled?: boolean }).urgent_messaging_enabled === true,
+      ),
+      hasAvailabilitySlots: expertsWithAvailability.has(ep.user_id),
+      isFounding: expertMatchesFoundingSet(foundingIds, ep, profile as { user_id?: unknown }),
+      relevanceOrder,
+    };
+  });
+}
+
+function SearchSkeleton() {
+  return (
+    <>
+      <div className="mb-6 h-14 animate-pulse rounded-xl bg-zinc-200" />
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-32 animate-pulse rounded-[var(--radius-md)] bg-zinc-100" />
+        ))}
+      </div>
+    </>
+  );
+}
+
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const { q } = await searchParams;
   const supabase = await createClient();
@@ -32,10 +97,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     fetchExpertsWithProfiles(supabase, trimmed),
     fetchFoundingSenseiUserIds(supabase),
   ]);
+
   const expertIds = experts.map((e) => e.user_id);
-  const { data: discountRows } =
+
+  const [{ data: discountRows }, { data: availabilityRows }] = await Promise.all([
     expertIds.length > 0
-      ? await supabase
+      ? supabase
           .from("discounts")
           .select(
             "expert_user_id, is_active, code, start_date, end_date, max_uses, current_uses",
@@ -43,21 +110,54 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           .in("expert_user_id", expertIds)
           .is("code", null)
           .eq("is_active", true)
-      : { data: [] };
+      : {
+          data: [] as {
+            expert_user_id: string;
+            start_date?: string | null;
+            end_date?: string | null;
+            max_uses?: number | null;
+            current_uses?: number | null;
+          }[],
+        },
+    expertIds.length > 0
+      ? supabase
+          .from("availability")
+          .select("expert_user_id")
+          .in("expert_user_id", expertIds)
+          .eq("is_active", true)
+      : { data: [] as { expert_user_id: string }[] },
+  ]);
+
   const nowIso = new Date().toISOString();
-  const discountExpertIds = new Set(
-    (discountRows ?? [])
-      .filter((d) => (d.start_date == null || d.start_date <= nowIso))
-      .filter((d) => (d.end_date == null || d.end_date >= nowIso))
-      .filter((d) => d.max_uses == null || (d.current_uses ?? 0) < d.max_uses)
-      .map((d) => d.expert_user_id as string),
+  type DiscountRow = {
+    expert_user_id: string;
+    start_date?: string | null;
+    end_date?: string | null;
+    max_uses?: number | null;
+    current_uses?: number | null;
+  };
+  const discountExpertIds = (discountRows ?? [] as DiscountRow[])
+    .filter((d) => d.start_date == null || d.start_date <= nowIso)
+    .filter((d) => d.end_date == null || d.end_date >= nowIso)
+    .filter((d) => d.max_uses == null || (d.current_uses ?? 0) < d.max_uses)
+    .map((d) => d.expert_user_id);
+
+  const expertsWithAvailability = new Set(
+    (availabilityRows ?? []).map((r) => r.expert_user_id),
+  );
+
+  const serialized = serializeSearchExperts(
+    experts,
+    trimmed,
+    expertsWithAvailability,
+    foundingUserIds,
   );
 
   return (
     <div className="min-h-screen w-full flex-1 bg-[var(--color-bg)]">
       <Navbar />
 
-      <main className="mx-auto max-w-4xl px-4 pb-16 pt-10 sm:px-6">
+      <main className="mx-auto max-w-4xl px-4 pb-16 pt-10 sm:px-6 lg:max-w-6xl">
         <h1 className="mb-1 text-3xl font-bold tracking-tight text-[var(--color-text)]">
           Find a Sensei
         </h1>
@@ -65,163 +165,21 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           Search by topic, skill, or speciality.
         </p>
 
-        <form
-          action="/search"
-          method="get"
-          className="flex h-14 items-center rounded-xl border border-[var(--color-border)] bg-white px-2 shadow-[var(--shadow-sm)]"
-        >
-          <input
-            id="q"
-            name="q"
-            type="search"
-            defaultValue={trimmed}
-            placeholder="e.g. jiujitsu, physiotherapy, strength and conditioning…"
-            className="h-full w-full border-0 bg-transparent px-3 text-base text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-placeholder)]"
-            autoComplete="off"
-          />
-          <button
-            type="submit"
-            className="shrink-0 rounded-lg bg-[var(--color-accent)] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
-          >
-            Search
-          </button>
-        </form>
-
         {experts.length === 0 ? (
           <div className="py-16 text-center">
             <p className="text-sm text-[var(--color-text-muted)]">
               {trimmed
                 ? `No Senseis found for "${trimmed}". Try a different search.`
-                : "No Senseis found for ''. Try a different search."}
+                : "No Senseis found yet."}
             </p>
           </div>
         ) : (
-          <section className="mt-8">
-            <p className="mb-4 text-sm text-[var(--color-text-muted)]">
-              {experts.length} Senseis found
-            </p>
-            <ul className="grid gap-4">
-            {experts.map((ep) => {
-              const profile = ep.profile;
-              if (!profile?.id) return null;
-              const name = profile.full_name?.trim() || "Sensei";
-              const initials = name
-                .split(/\s+/)
-                .map((w: string) => w[0])
-                .join("")
-                .slice(0, 2)
-                .toUpperCase();
-              const fromPrice = startingPrice(ep);
-              const tags = ep.keywords ?? [];
-              const svcs = ep.services ?? [];
-              const consultTypes: string[] = [];
-              if (svcs.some((s) => s.offers_messaging))
-                consultTypes.push("Messaging");
-              if (svcs.some((s) => s.offers_audio)) consultTypes.push("Audio");
-              if (svcs.some((s) => s.offers_video)) consultTypes.push("Video");
-
-              const matchedServiceName = trimmed
-                ? matchingServiceNameForSearch(ep, trimmed)
-                : null;
-
-              return (
-                <li key={ep.user_id as string}>
-                  <Link
-                    href={`/experts/${profile.id}`}
-                    className="block rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] transition hover:border-[var(--color-border-strong)]"
-                  >
-                    <div className="flex gap-4">
-                      <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-zinc-900">
-                        {profile.avatar_url ? (
-                          <Image
-                            src={profile.avatar_url}
-                            alt=""
-                            fill
-                            className="object-cover"
-                            sizes="44px"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-white">
-                            {initials}
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                              <h2 className="text-sm font-semibold text-[var(--color-text)]">
-                                {name}
-                              </h2>
-                              {foundingUserIds.has(ep.user_id as string) ? (
-                                <FoundingSenseiBadge size="sm" className="shrink-0" />
-                              ) : null}
-                            </div>
-                            {matchedServiceName ? (
-                              <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-                                <span className="font-medium text-[var(--color-text)]">
-                                  Offers:
-                                </span>{" "}
-                                {matchedServiceName}
-                              </p>
-                            ) : null}
-                          </div>
-                          {fromPrice != null ? (
-                            <span className="shrink-0 text-sm font-semibold text-[var(--color-text)]">
-                              From {formatGbp(fromPrice)}
-                            </span>
-                          ) : (
-                            <span className="shrink-0 text-xs text-[var(--color-text-muted)]">
-                              Pricing on profile
-                            </span>
-                          )}
-                        </div>
-                        {tags.length > 0 && (
-                          <ul className="mt-3 flex flex-wrap gap-1.5">
-                            {tags.slice(0, 4).map((tag: string) => (
-                              <li
-                                key={tag}
-                                className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600"
-                              >
-                                {tag}
-                              </li>
-                            ))}
-                            {tags.length > 4 && (
-                              <li className="px-1 text-xs text-[var(--color-text-muted)]">
-                                +{tags.length - 4} more
-                              </li>
-                            )}
-                          </ul>
-                        )}
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {consultTypes.length > 0 ? (
-                            consultTypes.map((t) => (
-                              <span
-                                key={t}
-                                className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600"
-                              >
-                                {t}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="text-xs text-[var(--color-text-muted)]">
-                              Consultation types on profile
-                            </span>
-                          )}
-                        </div>
-                        {discountExpertIds.has(ep.user_id as string) ? (
-                          <p className="mt-2 inline-flex rounded-full border border-[var(--color-accent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">
-                            Discount available
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                  </Link>
-                </li>
-              );
-            })}
-            </ul>
-          </section>
+          <Suspense fallback={<SearchSkeleton />}>
+            <SearchBrowseClient
+              experts={serialized}
+              discountExpertIds={discountExpertIds}
+            />
+          </Suspense>
         )}
       </main>
     </div>

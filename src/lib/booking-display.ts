@@ -72,7 +72,9 @@ export function formatDurationMinutes(minutes: number | null): string {
   return `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
 }
 
-/** Session is live: in progress, or confirmed and the scheduled start has passed. */
+const LIVE_NOW_WINDOW_MS = 4 * 60 * 60 * 1000;
+
+/** Live: in_progress (always), or confirmed with scheduled_at in the last 4 hours up to now. */
 export function isBookingLiveNow(
   status: string,
   scheduledAt: string | null,
@@ -80,7 +82,9 @@ export function isBookingLiveNow(
 ): boolean {
   if (status === "in_progress") return true;
   if (status !== "confirmed" || scheduledAt == null) return false;
-  return new Date(scheduledAt).getTime() <= now.getTime();
+  const t = new Date(scheduledAt).getTime();
+  const end = now.getTime();
+  return t <= end && t >= end - LIVE_NOW_WINDOW_MS;
 }
 
 /** Sort upcoming: live sessions first, then by scheduled time ascending. */

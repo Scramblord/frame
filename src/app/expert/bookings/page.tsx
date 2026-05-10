@@ -37,12 +37,14 @@ export default async function ExpertBookingsPage({ searchParams }: PageProps) {
     redirect("/expert/setup");
   }
 
-  const nowIso = new Date().toISOString();
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const fourHoursAgoIso = new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString();
 
   let cards: Awaited<ReturnType<typeof enrichBookingsForExpertCards>> = [];
 
   if (tab === "upcoming") {
-    const upcomingScheduledOr = `and(scheduled_at.gte.${nowIso},status.in.(confirmed,pending_payment,in_progress)),status.eq.in_progress,and(status.eq.confirmed,scheduled_at.lte.${nowIso})`;
+    const upcomingScheduledOr = `and(scheduled_at.gte.${nowIso},status.in.(confirmed,pending_payment,in_progress)),status.eq.in_progress,and(status.eq.confirmed,scheduled_at.gte.${fourHoursAgoIso},scheduled_at.lte.${nowIso})`;
 
     const [{ data: scheduledRows }, { data: messagingRows }] = await Promise.all([
       supabase

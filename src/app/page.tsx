@@ -1,6 +1,5 @@
 import Link from "next/link";
 import Image from "next/image";
-import Navbar from "@/components/Navbar";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 import { FoundingSenseiBadge } from "@/components/FoundingSenseiBadge";
@@ -47,37 +46,70 @@ function initialsFromName(name: string) {
 
 export default async function Home() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  const [experts, foundingUserIds] = await Promise.all([
-    fetchExpertsWithProfiles(supabase),
+  const expertsP = fetchExpertsWithProfiles(supabase);
+
+  const [foundingUserIds, foundingCountResponse, featuredPayload] = await Promise.all([
     fetchFoundingSenseiUserIds(supabase),
+    supabase
+      .from("expert_profiles")
+      .select("*", { count: "exact", head: true })
+      .eq("stripe_onboarding_complete", true),
+    expertsP.then(async (experts) => {
+      const expertsWithServices = experts.filter((expert) => {
+        const services = expert.services ?? [];
+        return services.some((service) => service.is_active !== false);
+      });
+      const featuredExperts = expertsWithServices.slice(0, 8);
+      const featuredUserIds = featuredExperts
+        .map((expert) => {
+          const p = expert.profile;
+          if (!p?.id) return null;
+          return marketplaceExpertAuthUserId(expert, p as { user_id?: string });
+        })
+        .filter((id): id is string => Boolean(id && id.length > 0));
+
+      const [{ data: featuredDiscountRows }, { data: reviewRows }] = await Promise.all([
+        featuredUserIds.length > 0
+          ? supabase
+              .from("discounts")
+              .select(
+                "expert_user_id, is_active, code, start_date, end_date, max_uses, current_uses",
+              )
+              .in("expert_user_id", featuredUserIds)
+              .is("code", null)
+              .eq("is_active", true)
+          : Promise.resolve({ data: [] }),
+        featuredUserIds.length > 0
+          ? supabase
+              .from("reviews")
+              .select("reviewee_id, rating")
+              .in("reviewee_id", featuredUserIds)
+          : Promise.resolve({
+              data: [] as { reviewee_id: string; rating: number | null }[],
+            }),
+      ]);
+
+      return {
+        featuredExperts,
+        featuredUserIds,
+        featuredDiscountRows,
+        reviewRows,
+      };
+    }),
   ]);
-  const expertsWithServices = experts.filter((expert) => {
-    const services = expert.services ?? [];
-    return services.some((service) => service.is_active !== false);
-  });
-  const featuredExperts = expertsWithServices.slice(0, 8);
-  const featuredUserIds = featuredExperts
-    .map((expert) => {
-      const p = expert.profile;
-      if (!p?.id) return null;
-      return marketplaceExpertAuthUserId(expert, p as { user_id?: string });
-    })
-    .filter((id): id is string => Boolean(id && id.length > 0));
-  const { data: featuredDiscountRows } =
-    featuredUserIds.length > 0
-      ? await supabase
-          .from("discounts")
-          .select(
-            "expert_user_id, is_active, code, start_date, end_date, max_uses, current_uses",
-          )
-          .in("expert_user_id", featuredUserIds)
-          .is("code", null)
-          .eq("is_active", true)
-      : { data: [] };
+
+  const foundingCountRaw = foundingCountResponse.count;
+  const foundingCount = foundingCountRaw ?? 0;
+  const foundingSpotsTarget = 100;
+  const foundingProgress = Math.min(
+    100,
+    Math.round((Math.min(foundingCount, foundingSpotsTarget) / foundingSpotsTarget) * 100),
+  );
+
+  const { featuredExperts, featuredUserIds, featuredDiscountRows, reviewRows } =
+    featuredPayload;
+
   const nowIso = new Date().toISOString();
   const discountExpertIds = new Set(
     (featuredDiscountRows ?? [])
@@ -86,14 +118,6 @@ export default async function Home() {
       .filter((d) => d.max_uses == null || (d.current_uses ?? 0) < d.max_uses)
       .map((d) => d.expert_user_id as string),
   );
-
-  const { data: reviewRows } =
-    featuredUserIds.length > 0
-      ? await supabase
-          .from("reviews")
-          .select("reviewee_id, rating")
-          .in("reviewee_id", featuredUserIds)
-      : { data: [] as { reviewee_id: string; rating: number | null }[] };
 
   const ratingByUserId = new Map<string, number | null>();
   for (const userId of featuredUserIds) {
@@ -139,18 +163,6 @@ export default async function Home() {
     .filter(Boolean)
     .filter((expert): expert is FeaturedSensei => expert !== null);
 
-  const { count: foundingCountRaw } = await supabase
-    .from("expert_profiles")
-    .select("*", { count: "exact", head: true })
-    .eq("stripe_onboarding_complete", true);
-
-  const foundingCount = foundingCountRaw ?? 0;
-  const foundingSpotsTarget = 100;
-  const foundingProgress = Math.min(
-    100,
-    Math.round((Math.min(foundingCount, foundingSpotsTarget) / foundingSpotsTarget) * 100),
-  );
-
   const heroSearch = (
     <form action="/search" method="get" className="mt-8 w-full max-w-2xl">
       <label htmlFor="landing-search" className="sr-only">
@@ -177,24 +189,20 @@ export default async function Home() {
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-[var(--color-bg)]">
-      {user ? (
-        <Navbar />
-      ) : (
-        <header className="border-b border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur">
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-            <Link href="/" className="flex items-center gap-2 text-[var(--color-text)]">
-              <img src="/Asset 4@3x.png" alt="" className="h-8 w-auto shrink-0" width={32} height={32} />
-              <img src="/Asset 5@3x.png" alt="Sensei" className="h-5 w-auto shrink-0" width={132} height={20} />
-            </Link>
-            <Link
-              href="/login"
-              className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-medium text-[var(--color-text)] shadow-[var(--shadow-sm)] transition hover:border-[var(--color-border-strong)]"
-            >
-              Sign in
-            </Link>
-          </div>
-        </header>
-      )}
+      <header className="border-b border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+          <Link href="/" className="flex items-center gap-2 text-[var(--color-text)]">
+            <img src="/Asset 4@3x.png" alt="" className="h-8 w-auto shrink-0" width={32} height={32} />
+            <img src="/Asset 5@3x.png" alt="Sensei" className="h-5 w-auto shrink-0" width={132} height={20} />
+          </Link>
+          <Link
+            href="/login"
+            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-medium text-[var(--color-text)] shadow-[var(--shadow-sm)] transition hover:border-[var(--color-border-strong)]"
+          >
+            Sign in
+          </Link>
+        </div>
+      </header>
 
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pb-16 pt-10 sm:px-6 sm:pt-14">
         <section className="text-center">

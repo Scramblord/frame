@@ -96,13 +96,22 @@ export default function OnboardingPage() {
         <div className="rounded-2xl border border-zinc-200/80 bg-white/90 p-8 shadow-xl shadow-zinc-900/5 backdrop-blur-sm dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-black/40 sm:p-10">
           <div className="mb-8 text-center">
             <div className="mb-5 flex justify-center">
-              <img
-                src="/logo.png"
-                alt=""
-                className="h-14 w-auto"
-                width={101}
-                height={56}
-              />
+              <div className="flex items-center gap-2">
+                <img
+                  src="/Asset 4@3x.png"
+                  alt=""
+                  className="h-10 w-auto shrink-0"
+                  width={40}
+                  height={40}
+                />
+                <img
+                  src="/Asset 5@3x.png"
+                  alt="Sensei"
+                  className="h-7 w-auto shrink-0"
+                  width={132}
+                  height={20}
+                />
+              </div>
             </div>
             <h1 className="font-mono text-4xl font-bold tracking-[0.35em] text-zinc-900 dark:text-zinc-50 sm:text-5xl">
               Sensei

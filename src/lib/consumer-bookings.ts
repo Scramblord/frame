@@ -24,15 +24,13 @@ export async function enrichBookingsForConsumerCards(
   const expertIds = [...new Set(rows.map((r) => r.expert_user_id))];
   const serviceIds = [...new Set(rows.map((r) => r.service_id))];
 
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, user_id, full_name, avatar_url")
-    .in("user_id", expertIds);
-
-  const { data: services } = await supabase
-    .from("services")
-    .select("id, name")
-    .in("id", serviceIds);
+  const [{ data: profiles }, { data: services }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, user_id, full_name, avatar_url")
+      .in("user_id", expertIds),
+    supabase.from("services").select("id, name").in("id", serviceIds),
+  ]);
 
   const profileByUser = new Map(
     (profiles ?? []).map((p) => [p.user_id as string, p]),

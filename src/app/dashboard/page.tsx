@@ -64,17 +64,22 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  const displayName = profile?.full_name?.trim() || "there";
   const nowIsoForAlerts = new Date().toISOString();
   const next24Iso = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-  const [{ count: offerSentCount }, { count: soonBookingCount }] = await Promise.all([
+  const [
+    { data: profile },
+    { count: offerSentCount },
+    { count: soonBookingCount },
+    { data: upcomingRaw },
+    featuredExperts,
+    foundingUserIds,
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("user_id", user.id)
+      .maybeSingle(),
     supabase
       .from("enquiries")
       .select("*", { head: true, count: "exact" })
@@ -87,7 +92,22 @@ export default async function DashboardPage() {
       .eq("status", "confirmed")
       .gte("scheduled_at", nowIsoForAlerts)
       .lte("scheduled_at", next24Iso),
+    supabase
+      .from("bookings")
+      .select(
+        "id, scheduled_at, duration_minutes, status, session_type, service_id, expert_user_id",
+      )
+      .eq("consumer_user_id", user.id)
+      .not("scheduled_at", "is", null)
+      .in("status", ["pending_payment", "confirmed", "in_progress"])
+      .order("scheduled_at", { ascending: true })
+      .limit(50),
+    fetchExpertsWithProfiles(supabase),
+    fetchFoundingSenseiUserIds(supabase),
   ]);
+
+  const nowMs = Date.now();
+  const displayName = profile?.full_name?.trim() || "there";
 
   const dashboardAlerts: DashboardAlertItem[] = [];
   if ((offerSentCount ?? 0) > 0) {
@@ -110,18 +130,6 @@ export default async function DashboardPage() {
     });
   }
 
-  const nowMs = Date.now();
-  const { data: upcomingRaw } = await supabase
-    .from("bookings")
-    .select(
-      "id, scheduled_at, duration_minutes, status, session_type, service_id, expert_user_id",
-    )
-    .eq("consumer_user_id", user.id)
-    .not("scheduled_at", "is", null)
-    .in("status", ["pending_payment", "confirmed", "in_progress"])
-    .order("scheduled_at", { ascending: true })
-    .limit(50);
-
   const upcomingRows =
     upcomingRaw?.filter((b) => {
       if (b.duration_minutes == null || !b.scheduled_at) return false;
@@ -130,15 +138,6 @@ export default async function DashboardPage() {
       return endMs > nowMs;
     }).slice(0, 3) ?? [];
 
-  const upcomingCards = await enrichBookingsForConsumerCards(
-    supabase,
-    upcomingRows,
-  );
-
-  const [featuredExperts, foundingUserIds] = await Promise.all([
-    fetchExpertsWithProfiles(supabase),
-    fetchFoundingSenseiUserIds(supabase),
-  ]);
   const featuredIds = featuredExperts
     .map((e) => {
       const p = e.profile;
@@ -147,9 +146,11 @@ export default async function DashboardPage() {
       return id.length > 0 ? id : null;
     })
     .filter((id): id is string => Boolean(id));
-  const { data: featuredDiscountRows } =
+
+  const [upcomingCards, { data: featuredDiscountRows }] = await Promise.all([
+    enrichBookingsForConsumerCards(supabase, upcomingRows),
     featuredIds.length > 0
-      ? await supabase
+      ? supabase
           .from("discounts")
           .select(
             "expert_user_id, is_active, code, start_date, end_date, max_uses, current_uses",
@@ -157,7 +158,8 @@ export default async function DashboardPage() {
           .in("expert_user_id", featuredIds)
           .is("code", null)
           .eq("is_active", true)
-      : { data: [] };
+      : Promise.resolve({ data: [] }),
+  ]);
   const nowIso = new Date().toISOString();
   const discountExpertIds = new Set(
     (featuredDiscountRows ?? [])

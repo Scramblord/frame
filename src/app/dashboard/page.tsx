@@ -102,7 +102,7 @@ export default async function DashboardPage() {
       .in("status", ["pending_payment", "confirmed", "in_progress"])
       .order("scheduled_at", { ascending: true })
       .limit(50),
-    fetchExpertsWithProfiles(supabase),
+    fetchExpertsWithProfiles(supabase, undefined, 8),
     fetchFoundingSenseiUserIds(supabase),
   ]);
 

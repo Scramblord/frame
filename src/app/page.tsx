@@ -47,7 +47,7 @@ function initialsFromName(name: string) {
 export default async function Home() {
   const supabase = await createClient();
 
-  const expertsP = fetchExpertsWithProfiles(supabase);
+  const expertsP = fetchExpertsWithProfiles(supabase, undefined, 8);
 
   const [foundingUserIds, foundingCountResponse, featuredPayload] = await Promise.all([
     fetchFoundingSenseiUserIds(supabase),

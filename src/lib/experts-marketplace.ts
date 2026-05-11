@@ -118,6 +118,7 @@ export function matchingServiceNameForSearch(
 export async function fetchExpertsWithProfiles(
   supabase: SupabaseClient,
   query?: string,
+  limit?: number,
 ): Promise<ExpertWithProfile[]> {
   const trimmed = (query ?? "").trim();
 
@@ -139,13 +140,21 @@ export async function fetchExpertsWithProfiles(
     if (ids.length === 0) {
       return [];
     }
-    const { data: rows } = await supabase
+    let profileQuery = supabase
       .from("expert_profiles")
       .select("*")
       .in("user_id", ids);
+    if (limit != null) {
+      profileQuery = profileQuery.limit(limit);
+    }
+    const { data: rows } = await profileQuery;
     expertProfiles = (rows ?? []) as Record<string, unknown>[];
   } else {
-    const { data: rows } = await supabase.from("expert_profiles").select("*");
+    let profileQuery = supabase.from("expert_profiles").select("*");
+    if (limit != null) {
+      profileQuery = profileQuery.limit(limit);
+    }
+    const { data: rows } = await profileQuery;
     expertProfiles = (rows ?? []) as Record<string, unknown>[];
   }
 
@@ -153,23 +162,38 @@ export async function fetchExpertsWithProfiles(
     ...new Set(expertProfiles.map((ep) => ep.user_id as string)),
   ];
 
-  const { data: profiles } =
-    userIds.length > 0
-      ? await supabase.from("profiles").select("*").in("user_id", userIds)
-      : { data: [] as { user_id: string }[] };
+  const emptyProfiles = { data: [] as { user_id: string }[] };
+  const emptyServices = { data: [] as ServiceRow[] };
+  const emptyReviewStats = {
+    data: [] as {
+      expert_user_id: string;
+      avg_rating: number | string | null;
+      review_count: number | string;
+    }[],
+  };
 
+  const [profilesResult, allServicesResult, reviewStatsResult] =
+    userIds.length > 0
+      ? await Promise.all([
+          supabase.from("profiles").select("*").in("user_id", userIds),
+          supabase
+            .from("services")
+            .select("*")
+            .in("expert_user_id", userIds)
+            .eq("is_active", true),
+          supabase
+            .from("expert_review_stats")
+            .select("expert_user_id, avg_rating, review_count")
+            .in("expert_user_id", userIds),
+        ])
+      : [emptyProfiles, emptyServices, emptyReviewStats];
+
+  const { data: profiles } = profilesResult;
   const profileMap = new Map(
     (profiles ?? []).map((p: { user_id: string }) => [p.user_id, p]),
   );
 
-  const { data: allServices } =
-    userIds.length > 0
-      ? await supabase
-          .from("services")
-          .select("*")
-          .in("expert_user_id", userIds)
-          .eq("is_active", true)
-      : { data: [] as ServiceRow[] };
+  const { data: allServices } = allServicesResult;
 
   const servicesByExpert = new Map<string, ServiceRow[]>();
   for (const s of allServices ?? []) {
@@ -179,19 +203,7 @@ export async function fetchExpertsWithProfiles(
     servicesByExpert.set(uid, list);
   }
 
-  const { data: reviewStatsRows } =
-    userIds.length > 0
-      ? await supabase
-          .from("expert_review_stats")
-          .select("expert_user_id, avg_rating, review_count")
-          .in("expert_user_id", userIds)
-      : {
-          data: [] as {
-            expert_user_id: string;
-            avg_rating: number | string | null;
-            review_count: number | string;
-          }[],
-        };
+  const { data: reviewStatsRows } = reviewStatsResult;
 
   const reviewStatsByExpert = new Map<
     string,

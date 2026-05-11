@@ -2,7 +2,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { type FormEvent, Suspense, useState } from "react";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -37,6 +37,10 @@ function LoginContent() {
   const authError = searchParams.get("error");
   const [loading, setLoading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [magicEmail, setMagicEmail] = useState("");
+  const [magicLinkLoading, setMagicLinkLoading] = useState(false);
+  const [magicLinkSuccess, setMagicLinkSuccess] = useState(false);
+  const [magicLinkError, setMagicLinkError] = useState<string | null>(null);
 
   async function signInWithGoogle() {
     setLoading(true);
@@ -50,6 +54,33 @@ function LoginContent() {
     if (error) {
       setLocalError(error.message);
       setLoading(false);
+    }
+  }
+
+  async function sendMagicLink(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setMagicLinkError(null);
+    setMagicLinkLoading(true);
+    try {
+      const res = await fetch("/api/auth/magic-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: magicEmail }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        setMagicLinkError(
+          typeof data.error === "string" && data.error.length > 0
+            ? data.error
+            : "Could not send sign-in link. Please try again.",
+        );
+        return;
+      }
+      setMagicLinkSuccess(true);
+    } catch {
+      setMagicLinkError("Could not send sign-in link. Please try again.");
+    } finally {
+      setMagicLinkLoading(false);
     }
   }
 
@@ -114,6 +145,62 @@ function LoginContent() {
             <GoogleIcon className="h-5 w-5 shrink-0" />
             {loading ? "Redirecting…" : "Continue with Google"}
           </button>
+
+          <div className="relative my-8">
+            <div className="absolute inset-0 flex items-center" aria-hidden>
+              <span className="w-full border-t border-zinc-200 dark:border-zinc-600" />
+            </div>
+            <div className="relative flex justify-center text-xs font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+              <span className="bg-white/90 px-3 dark:bg-zinc-900/90">or</span>
+            </div>
+          </div>
+
+          {magicLinkSuccess ? (
+            <p
+              className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-3 text-center text-sm text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-100"
+              role="status"
+            >
+              Check your email — we&apos;ve sent you a sign in link
+            </p>
+          ) : (
+            <form onSubmit={(e) => void sendMagicLink(e)} className="space-y-4">
+              <div>
+                <label
+                  htmlFor="login-magic-email"
+                  className="mb-1.5 block text-left text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                >
+                  Email
+                </label>
+                <input
+                  id="login-magic-email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  value={magicEmail}
+                  onChange={(e) => setMagicEmail(e.target.value)}
+                  required
+                  disabled={magicLinkLoading}
+                  placeholder="you@example.com"
+                  className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 shadow-sm outline-none ring-zinc-900/10 placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-500 dark:focus:ring-zinc-100/10"
+                />
+              </div>
+              {magicLinkError ? (
+                <p
+                  className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-center text-sm text-red-800 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200"
+                  role="alert"
+                >
+                  {magicLinkError}
+                </p>
+              ) : null}
+              <button
+                type="submit"
+                disabled={magicLinkLoading}
+                className="flex w-full items-center justify-center rounded-xl border border-zinc-200 bg-zinc-900 px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-600 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 dark:focus-visible:outline-zinc-300"
+              >
+                {magicLinkLoading ? "Sending…" : "Send magic link"}
+              </button>
+            </form>
+          )}
 
           <p className="mt-8 text-center text-xs leading-relaxed text-zinc-400 dark:text-zinc-500">
             By continuing, you agree to Sensei&apos;s use of authentication

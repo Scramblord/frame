@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     "Book live video, audio, or messaging sessions with Senseis. Brazilian jiu-jitsu, grappling, physiotherapy, strength & conditioning, and more.",
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 type FeaturedSensei = {
   userId: string;

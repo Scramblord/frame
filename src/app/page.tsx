@@ -247,8 +247,14 @@ export default async function Home() {
               {featuredSenseis.map((sensei) => (
                 <li
                   key={sensei.userId}
-                  className="w-[85%] min-w-[270px] snap-start rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:w-auto md:min-w-0"
+                  className="relative w-[85%] min-w-[270px] snap-start rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:w-auto md:min-w-0"
                 >
+                  <Link
+                    href={`/experts/${sensei.profileId}`}
+                    className="absolute inset-0 z-0 cursor-pointer rounded-[var(--radius-md)]"
+                    aria-label={`View ${sensei.fullName} profile`}
+                  />
+                  <div className="relative z-[1] pointer-events-none">
                   <div className="flex items-start gap-3">
                     <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-200">
                       {sensei.avatarUrl ? (
@@ -292,16 +298,17 @@ export default async function Home() {
                     </p>
                   ) : null}
 
-                  <div className="mt-5 flex items-center justify-between gap-2">
+                  <div className="mt-5 flex items-center justify-between gap-2 pointer-events-none">
                     <p className="text-sm font-semibold text-[var(--color-text)]">
                       {sensei.startingPrice != null ? `From ${formatGbp(sensei.startingPrice)}` : "Pricing on profile"}
                     </p>
                     <Link
                       href={`/experts/${sensei.profileId}`}
-                      className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-hover)]"
+                      className="pointer-events-auto rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-hover)]"
                     >
                       Book
                     </Link>
+                  </div>
                   </div>
                 </li>
               ))}

@@ -523,7 +523,7 @@ function ExpertResultCard({
   return (
     <Link
       href={`/experts/${item.profileId}`}
-      className="block rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] transition hover:border-[var(--color-border-strong)]"
+      className="block cursor-pointer rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] transition hover:border-[var(--color-border-strong)]"
     >
       <div className="flex gap-4">
         <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-zinc-900">

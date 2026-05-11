@@ -285,7 +285,13 @@ export default async function DashboardPage() {
 
                 return (
                   <li key={authUserId || String(epRow.user_id ?? epRow.userId ?? "")}>
-                    <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)]">
+                    <div className="relative rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)]">
+                      <Link
+                        href={`/experts/${p.id}`}
+                        className="absolute inset-0 z-0 cursor-pointer rounded-[var(--radius-md)]"
+                        aria-label={`View ${name} profile`}
+                      />
+                      <div className="relative z-[1] pointer-events-none">
                       <div className="flex min-w-0 items-start gap-3">
                         <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-700">
                         {p.avatar_url ? (
@@ -338,7 +344,7 @@ export default async function DashboardPage() {
                           {truncatedBio}
                         </p>
                       ) : null}
-                      <div className="mt-3 flex items-center justify-between gap-2">
+                      <div className="mt-3 flex items-center justify-between gap-2 pointer-events-none">
                         <p className="text-xs text-[var(--color-text-muted)]">
                           {reviewCount > 0 && avgRating != null
                             ? `★ ${avgRating.toFixed(1)} (${reviewCount} reviews)`
@@ -346,7 +352,7 @@ export default async function DashboardPage() {
                         </p>
                         <Link
                           href={`/experts/${p.id}`}
-                          className="text-xs text-[var(--color-accent)] hover:underline"
+                          className="pointer-events-auto text-xs text-[var(--color-accent)] hover:underline"
                         >
                           View profile →
                         </Link>
@@ -356,6 +362,7 @@ export default async function DashboardPage() {
                           Discount available
                         </p>
                       ) : null}
+                      </div>
                     </div>
                   </li>
                 );

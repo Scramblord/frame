@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -121,12 +122,13 @@ export default function NavbarClient({
             }`}
           >
             {avatarUrl ? (
-              <img
+              <Image
                 src={avatarUrl}
                 alt=""
-                className="h-7 w-7 rounded-full object-cover"
                 width={28}
                 height={28}
+                sizes="28px"
+                className="h-7 w-7 rounded-full object-cover"
               />
             ) : (
               <span
@@ -155,12 +157,13 @@ export default function NavbarClient({
           >
             <div className="flex items-center gap-3 rounded-lg px-2 py-2">
               {avatarUrl ? (
-                <img
+                <Image
                   src={avatarUrl}
                   alt=""
-                  className="h-10 w-10 rounded-full object-cover"
                   width={40}
                   height={40}
+                  sizes="40px"
+                  className="h-10 w-10 rounded-full object-cover"
                 />
               ) : (
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">

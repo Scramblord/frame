@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import SyncSenseiModeOnMount from "@/components/SyncSenseiModeOnMount";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { FoundingSenseiBadge } from "@/components/FoundingSenseiBadge";
 import {
@@ -288,12 +289,13 @@ export default async function DashboardPage() {
                       <div className="flex min-w-0 items-start gap-3">
                         <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-zinc-200 text-zinc-700">
                         {p.avatar_url ? (
-                          <img
+                          <Image
                             src={p.avatar_url}
                             alt=""
-                            className="h-full w-full object-cover"
                             width={44}
                             height={44}
+                            sizes="44px"
+                            className="h-full w-full object-cover"
                           />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center text-sm font-semibold">

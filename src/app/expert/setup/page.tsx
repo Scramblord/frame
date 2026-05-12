@@ -456,14 +456,48 @@ export default function ExpertSetupPage() {
         .filter((id) => !keptIds.includes(id)) ?? [];
 
     if (toDelete.length > 0) {
-      const { error: delErr } = await supabase
-        .from("services")
-        .delete()
-        .in("id", toDelete);
-      if (delErr) {
-        setError(delErr.message);
+      const { data: bookingRows, error: bookErr } = await supabase
+        .from("bookings")
+        .select("service_id")
+        .in("service_id", toDelete);
+
+      if (bookErr) {
+        setError(bookErr.message);
         setSubmitting(false);
         return;
+      }
+
+      const serviceIdsWithBookings = new Set(
+        (bookingRows ?? [])
+          .map((r) => r.service_id)
+          .filter((id): id is string => typeof id === "string" && id.length > 0),
+      );
+
+      const toSoftDelete = toDelete.filter((id) => serviceIdsWithBookings.has(id));
+      const toHardDelete = toDelete.filter((id) => !serviceIdsWithBookings.has(id));
+
+      if (toSoftDelete.length > 0) {
+        const { error: softErr } = await supabase
+          .from("services")
+          .update({ is_active: false })
+          .in("id", toSoftDelete);
+        if (softErr) {
+          setError(softErr.message);
+          setSubmitting(false);
+          return;
+        }
+      }
+
+      if (toHardDelete.length > 0) {
+        const { error: delErr } = await supabase
+          .from("services")
+          .delete()
+          .in("id", toHardDelete);
+        if (delErr) {
+          setError(delErr.message);
+          setSubmitting(false);
+          return;
+        }
       }
     }
 

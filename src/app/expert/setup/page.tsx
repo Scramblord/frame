@@ -398,6 +398,18 @@ export default function ExpertSetupPage() {
         setError(`${label}: minimum session length cannot exceed maximum.`);
         return;
       }
+      if (s.min_session_minutes <= 0 || s.min_session_minutes % 15 !== 0) {
+        setError(
+          `${label}: minimum session length must be greater than 0 and a multiple of 15 minutes.`,
+        );
+        return;
+      }
+      if (s.max_session_minutes <= 0 || s.max_session_minutes % 15 !== 0) {
+        setError(
+          `${label}: maximum session length must be greater than 0 and a multiple of 15 minutes.`,
+        );
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -473,8 +485,70 @@ export default function ExpertSetupPage() {
           .filter((id): id is string => typeof id === "string" && id.length > 0),
       );
 
-      const toSoftDelete = toDelete.filter((id) => serviceIdsWithBookings.has(id));
-      const toHardDelete = toDelete.filter((id) => !serviceIdsWithBookings.has(id));
+      const softSet = new Set(
+        toDelete.filter((id) => serviceIdsWithBookings.has(id)),
+      );
+      let hardList = toDelete.filter((id) => !softSet.has(id));
+
+      if (hardList.length > 0) {
+        const [{ data: enqRows, error: enqErr }, { data: discRows, error: discErr }] =
+          await Promise.all([
+            supabase.from("enquiries").select("service_id").in("service_id", hardList),
+            supabase.from("discounts").select("service_id").in("service_id", hardList),
+          ]);
+
+        if (enqErr) {
+          setError(enqErr.message);
+          setSubmitting(false);
+          return;
+        }
+        if (discErr) {
+          setError(discErr.message);
+          setSubmitting(false);
+          return;
+        }
+
+        const enqOrDiscountIds = new Set(
+          [...(enqRows ?? []), ...(discRows ?? [])]
+            .map((r) => r.service_id)
+            .filter((id): id is string => typeof id === "string" && id.length > 0),
+        );
+
+        for (const id of hardList) {
+          if (enqOrDiscountIds.has(id)) {
+            softSet.add(id);
+          }
+        }
+        hardList = hardList.filter((id) => !enqOrDiscountIds.has(id));
+      }
+
+      if (hardList.length > 0) {
+        const { data: raceRows, error: raceErr } = await supabase
+          .from("bookings")
+          .select("service_id")
+          .in("service_id", hardList);
+
+        if (raceErr) {
+          setError(raceErr.message);
+          setSubmitting(false);
+          return;
+        }
+
+        const raceBookingIds = new Set(
+          (raceRows ?? [])
+            .map((r) => r.service_id)
+            .filter((id): id is string => typeof id === "string" && id.length > 0),
+        );
+
+        for (const id of hardList) {
+          if (raceBookingIds.has(id)) {
+            softSet.add(id);
+          }
+        }
+        hardList = hardList.filter((id) => !raceBookingIds.has(id));
+      }
+
+      const toSoftDelete = [...softSet];
 
       if (toSoftDelete.length > 0) {
         const { error: softErr } = await supabase
@@ -488,11 +562,11 @@ export default function ExpertSetupPage() {
         }
       }
 
-      if (toHardDelete.length > 0) {
+      if (hardList.length > 0) {
         const { error: delErr } = await supabase
           .from("services")
           .delete()
-          .in("id", toHardDelete);
+          .in("id", hardList);
         if (delErr) {
           setError(delErr.message);
           setSubmitting(false);
@@ -502,6 +576,24 @@ export default function ExpertSetupPage() {
     }
 
     for (const s of services) {
+      const ext = s as ServiceForm & {
+        messaging_response_hours?: number;
+        urgent_messaging_enabled?: boolean;
+        urgent_messaging_rate?: string | number | null;
+      };
+
+      const messaging_response_hours = s.offers_messaging
+        ? (() => {
+            const raw = ext.messaging_response_hours;
+            const n =
+              typeof raw === "number" && Number.isFinite(raw) ? Math.trunc(raw) : 0;
+            return n > 0 ? n : 24;
+          })()
+        : null;
+
+      const urgentEnabled = ext.urgent_messaging_enabled === true;
+      const ur = parseFloat(String(ext.urgent_messaging_rate ?? ""));
+
       const row = {
         expert_user_id: user.id,
         name: s.name.trim(),
@@ -513,6 +605,7 @@ export default function ExpertSetupPage() {
         messaging_flat_rate: s.offers_messaging
           ? parseFloat(s.messaging_flat_rate)
           : null,
+        messaging_response_hours,
         offers_audio: s.offers_audio,
         audio_hourly_rate: s.offers_audio
           ? parseFloat(s.audio_hourly_rate)
@@ -521,6 +614,9 @@ export default function ExpertSetupPage() {
         video_hourly_rate: s.offers_video
           ? parseFloat(s.video_hourly_rate)
           : null,
+        urgent_messaging_enabled: urgentEnabled,
+        urgent_messaging_rate:
+          urgentEnabled && Number.isFinite(ur) && ur > 0 ? ur : null,
         is_active: true,
       };
 

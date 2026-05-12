@@ -227,7 +227,7 @@ export default function NavbarClient({
                   Profile & Services
                 </Link>
                 <Link
-                  href="/settings"
+                  href="/expert/settings"
                   onClick={closeMenu}
                   className={`${dropdownItemClass} text-[var(--color-text)] hover:bg-zinc-100`}
                 >

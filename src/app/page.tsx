@@ -3,6 +3,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 import { FoundingSenseiBadge } from "@/components/FoundingSenseiBadge";
+import { KnowledgeIsPowerMoney } from "@/components/KnowledgeIsPowerMoney";
 import {
   fetchExpertsWithProfiles,
   formatGbp,
@@ -223,6 +224,31 @@ export default async function Home() {
           </div>
         </section>
 
+        <section
+          aria-labelledby="landing-kipm-banner-heading"
+          className="relative left-1/2 mt-16 w-screen max-w-[100vw] -translate-x-1/2 border-y border-[var(--color-border)] bg-[var(--color-accent-light)]/70 py-10 sm:py-12"
+        >
+          <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 sm:flex-row sm:items-center sm:justify-between sm:gap-10 sm:px-6">
+            <div className="max-w-2xl text-center sm:text-left">
+              <KnowledgeIsPowerMoney
+                as="h2"
+                id="landing-kipm-banner-heading"
+                className="text-2xl font-semibold tracking-tight text-[var(--color-text)] sm:text-3xl"
+              />
+              <p className="mt-3 text-sm leading-relaxed text-[var(--color-text-muted)] sm:text-base">
+                Turn your expertise into income. Join Sensei as a founding expert and lock in 5%
+                commission for 2 years.
+              </p>
+            </div>
+            <Link
+              href="/login"
+              className="shrink-0 rounded-xl bg-[var(--color-accent)] px-6 py-3 text-sm font-semibold text-white shadow-[var(--shadow-sm)] transition hover:bg-[var(--color-accent-hover)]"
+            >
+              Become a Sensei →
+            </Link>
+          </div>
+        </section>
+
         <section className="mt-16">
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
@@ -344,7 +370,10 @@ export default async function Home() {
         </section>
 
         <section className="mt-16 rounded-[var(--radius-lg)] bg-[var(--color-navbar-dark)] p-6 text-[var(--color-navbar-dark-text)] shadow-[var(--shadow-md)] sm:p-8">
-          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Become a Founding Sensei</h2>
+          <KnowledgeIsPowerMoney
+            as="h2"
+            className="text-2xl font-semibold tracking-tight sm:text-3xl"
+          />
           <p className="mt-4 max-w-3xl text-sm leading-relaxed text-[var(--color-navbar-dark-muted)] sm:text-base">
             We&apos;re onboarding our first 100 Senseis. Founding Senseis lock in a 5% commission rate for 2 years — half our standard rate. Join the founding cohort before spots run out.
           </p>

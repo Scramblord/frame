@@ -14,6 +14,7 @@ import DashboardAlertStrip, {
   type DashboardAlertItem,
 } from "@/components/DashboardAlertStrip";
 import { FoundingSenseiBadge } from "@/components/FoundingSenseiBadge";
+import { KnowledgeIsPowerMoney } from "@/components/KnowledgeIsPowerMoney";
 import { fetchFoundingSenseiUserIds } from "@/lib/founding-sensei";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -322,7 +323,16 @@ export default async function ExpertDashboardPage() {
           <h1 className="mb-1 text-3xl font-bold tracking-tight text-[var(--color-text)]">
             {greeting}, {firstName}
           </h1>
-          <p className="text-sm text-[var(--color-text-muted)]">
+          <KnowledgeIsPowerMoney
+            as="p"
+            className="mt-3 text-lg font-semibold tracking-tight text-[var(--color-text)]"
+          />
+          <p className="mt-1.5 text-sm text-[var(--color-text-muted)]">
+            {allTimeRevenue > 0
+              ? `Total earnings to date: ${formatGbp(allTimeRevenue)}`
+              : "Start earning today."}
+          </p>
+          <p className="mt-3 text-sm text-[var(--color-text-muted)]">
             {subtitleLabel}
           </p>
         </header>

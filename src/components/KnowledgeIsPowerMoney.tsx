@@ -19,7 +19,7 @@ export function KnowledgeIsPowerMoney({
     <Tag className={className} id={id}>
       Knowledge is{" "}
       <span style={powerStrikeStyle}>Power</span>
-      <span className="font-normal"> Money.</span>
+      <span className="font-bold italic"> Money.</span>
     </Tag>
   );
 }

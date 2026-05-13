@@ -244,16 +244,7 @@ export default async function BookingDetailPage({
           <div className="mt-8 space-y-3 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
             {!hideJoinSession && showJoinSessionActions ? (
               <div>
-                {isMessagingSession ? (
-                  showMessagingConversation ? (
-                    <Link
-                      href={`/messages/${booking.id}`}
-                      className="flex w-full items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
-                    >
-                      Go to conversation
-                    </Link>
-                  ) : null
-                ) : showAvSession && joinActive ? (
+                {showAvSession && joinActive ? (
                   <Link
                     href={`/session/${booking.id}`}
                     className="flex w-full items-center justify-center rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"

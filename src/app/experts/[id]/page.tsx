@@ -17,6 +17,7 @@ import EnquireButton from "@/components/EnquireButton";
 import { FoundingSenseiBadge } from "@/components/FoundingSenseiBadge";
 import Navbar from "@/components/Navbar";
 import { fetchFoundingSenseiUserIds } from "@/lib/founding-sensei";
+import { formatTimezone } from "@/lib/timezone";
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -231,7 +232,12 @@ export default async function ExpertPublicPage({ params }: PageProps) {
               </div>
               {profile.location || expert?.timezone ? (
                 <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-                  {[profile.location, expert?.timezone].filter(Boolean).join(" · ")}
+                  {[
+                    profile.location,
+                    expert?.timezone ? formatTimezone(expert.timezone) : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
               ) : null}
               {expert?.keywords && expert.keywords.length > 0 ? (

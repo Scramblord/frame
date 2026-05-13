@@ -19,6 +19,7 @@ import {
   type DiscountRow,
 } from "@/lib/discounts";
 import { formatGbp, type ServiceRow } from "@/lib/experts-marketplace";
+import { formatTimezone } from "@/lib/timezone";
 import { supabase } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -630,7 +631,7 @@ export function BookWizard({
             Date &amp; time
           </h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Times shown in ({tz}).
+            Times shown in ({formatTimezone(tz)}).
           </p>
           <div>
             <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">
@@ -877,7 +878,7 @@ export function BookWizard({
                 <div className="flex justify-between gap-4">
                   <dt className="text-zinc-500">When</dt>
                   <dd className="text-right text-zinc-900 dark:text-zinc-50">
-                    {selectedDate} · {slotTime} ({tz})
+                    {selectedDate} · {slotTime} ({formatTimezone(tz)})
                   </dd>
                 </div>
               ) : null}

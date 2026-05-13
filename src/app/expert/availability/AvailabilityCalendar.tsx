@@ -1,5 +1,7 @@
 "use client";
 
+import { formatTimezone } from "@/lib/timezone";
+
 import { supabase } from "@/lib/supabase/client";
 import type { OverrideRow, WeeklyDayState } from "./availability-types";
 import { newSlotKey, validateSlotsNoOverlap } from "./availability-utils";
@@ -330,7 +332,7 @@ export default function AvailabilityCalendar({
       </h2>
       <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
         Block specific dates or set one-off hours. Overrides apply in your
-        profile timezone ({timezone}). Colours:{" "}
+        profile timezone ({formatTimezone(timezone)}). Colours:{" "}
         <span className="text-emerald-700 dark:text-emerald-400">
           weekly hours
         </span>

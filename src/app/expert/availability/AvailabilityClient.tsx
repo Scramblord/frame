@@ -2,6 +2,7 @@
 
 import { supabase } from "@/lib/supabase/client";
 import type { OverrideRow, WeeklyDayState } from "./availability-types";
+import { formatTimezone } from "@/lib/timezone";
 import { newSlotKey, validateSlotsNoOverlap } from "./availability-utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -231,7 +232,7 @@ export default function AvailabilityClient({
       <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
         Set your weekly hours. Times are in your profile timezone:{" "}
         <span className="font-medium text-zinc-700 dark:text-zinc-300">
-          {tzLabel}
+          {formatTimezone(tzLabel)}
         </span>
         .
       </p>

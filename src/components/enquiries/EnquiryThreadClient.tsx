@@ -104,6 +104,47 @@ function parseOfferPayload(raw: string): null | {
   }
 }
 
+function isMessagingOfferSessionType(sessionType?: string): boolean {
+  return sessionType === "messaging" || sessionType === "urgent_messaging";
+}
+
+function sessionTypeOfferIcon(sessionType?: string): string {
+  switch (sessionType) {
+    case "video":
+      return "📹 ";
+    case "audio":
+      return "🎙 ";
+    case "messaging":
+      return "💬 ";
+    case "urgent_messaging":
+      return "⚡ ";
+    default:
+      return "";
+  }
+}
+
+function enquiryThreadStatusBadgeClass(status: string): string {
+  const base =
+    "inline-flex shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium";
+  if (status === "open") {
+    return `${base} border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200`;
+  }
+  if (status === "offer_sent") {
+    return `${base} border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200`;
+  }
+  if (status === "closed") {
+    return `${base} border-zinc-200 bg-zinc-100 text-zinc-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-400`;
+  }
+  return `${base} border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]`;
+}
+
+function enquiryThreadStatusBadgeLabel(status: string): string {
+  if (status === "open") return "Open";
+  if (status === "offer_sent") return "Offer sent";
+  if (status === "closed") return "Closed";
+  return status.replace(/_/g, " ");
+}
+
 export default function EnquiryThreadClient({
   enquiryId,
   backHref,
@@ -140,6 +181,9 @@ export default function EnquiryThreadClient({
   const [offerDateTime, setOfferDateTime] = useState("");
   const [offerDuration, setOfferDuration] = useState<string>("");
   const [sendingOffer, setSendingOffer] = useState(false);
+  const [cancelEnquiryStep, setCancelEnquiryStep] = useState<"idle" | "confirm">(
+    "idle",
+  );
 
   const canSendOffer = role === "expert" && (status === "open" || status === "offer_sent");
   const canChat = status === "open" || status === "offer_sent";
@@ -233,11 +277,12 @@ export default function EnquiryThreadClient({
       });
       const json = (await res.json()) as { error?: string };
       if (!res.ok) {
-        setError(json.error ?? "Could not close enquiry");
+        setError(json.error ?? "Could not cancel enquiry");
         return;
       }
       await refresh();
       router.refresh();
+      setCancelEnquiryStep("idle");
     } finally {
       setClosing(false);
     }
@@ -323,19 +368,24 @@ export default function EnquiryThreadClient({
         ← Back
       </Link>
 
-      <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
-        <p className="text-xs uppercase tracking-wide text-zinc-500">Enquiry</p>
-        <h1 className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-          {service.name} · {counterpart}
-        </h1>
-        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-          Status: <span className="font-medium">{status.replace(/_/g, " ")}</span>
-        </p>
+      <div className="mt-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <h1 className="text-lg font-semibold text-[var(--color-text)]">
+            {service.name} · {counterpart}
+          </h1>
+          <span className={enquiryThreadStatusBadgeClass(status)}>
+            {enquiryThreadStatusBadgeLabel(status)}
+          </span>
+        </div>
       </div>
 
-      <div className="mt-4 space-y-3 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+      <div className="mt-4 space-y-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
         {messages.length === 0 ? (
-          <p className="text-sm text-zinc-500">No messages yet.</p>
+          <p className="text-sm text-[var(--color-text-muted)]">
+            {role === "consumer"
+              ? "Send a message to introduce yourself and explain what you're looking for."
+              : "No messages yet."}
+          </p>
         ) : (
           messages.map((m) => {
             const mine = m.sender_id === currentUserId;
@@ -343,6 +393,9 @@ export default function EnquiryThreadClient({
             const expired =
               payload?.offerExpiresAt != null &&
               new Date(payload.offerExpiresAt).getTime() <= Date.now();
+            const offerMessaging = Boolean(
+              payload && isMessagingOfferSessionType(payload.sessionType),
+            );
 
             return (
               <div
@@ -352,8 +405,8 @@ export default function EnquiryThreadClient({
                 <div
                   className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
                     mine
-                      ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                      : "border border-zinc-200 bg-zinc-50 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      ? "bg-[var(--color-text)] text-[var(--color-bg)]"
+                      : "border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]"
                   }`}
                 >
                   {m.is_offer && payload ? (
@@ -362,11 +415,18 @@ export default function EnquiryThreadClient({
                         Booking offer
                       </p>
                       <p>
+                        <span aria-hidden>{sessionTypeOfferIcon(payload.sessionType)}</span>
                         {formatSessionTypeLabel(payload.sessionType)} ·{" "}
-                        {payload.durationMinutes ?? "TBC"} min
+                        {offerMessaging
+                          ? "Flexible"
+                          : `${payload.durationMinutes ?? "TBC"} min`}
                       </p>
-                      <p>{formatDateTime(payload.scheduledAt ?? null)}</p>
-                      <p className="font-semibold">
+                      <p>
+                        {offerMessaging
+                          ? "On demand"
+                          : formatDateTime(payload.scheduledAt ?? null)}
+                      </p>
+                      <p className="text-xl font-bold tracking-tight">
                         {payload.totalAmount != null
                           ? formatGbp(Number(payload.totalAmount))
                           : "Price pending"}
@@ -391,7 +451,13 @@ export default function EnquiryThreadClient({
                   ) : (
                     <p className="whitespace-pre-wrap break-words">{m.content}</p>
                   )}
-                  <p className="mt-1 text-[11px] opacity-70">
+                  <p
+                    className={`mt-1 text-[11px] tabular-nums ${
+                      mine
+                        ? "opacity-70"
+                        : "text-[var(--color-text-muted)] opacity-90"
+                    }`}
+                  >
                     {formatDateTime(m.created_at)}
                   </p>
                 </div>
@@ -523,23 +589,48 @@ export default function EnquiryThreadClient({
         </div>
       ) : null}
 
-      {!isClosed ? (
-        <div className="mt-4">
-          <button
-            type="button"
-            onClick={() => void closeEnquiry()}
-            disabled={closing}
-            className="w-full rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
-          >
-            {closing ? "Closing..." : "Close enquiry"}
-          </button>
-        </div>
-      ) : null}
-
       {error ? (
         <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
           {error}
         </p>
+      ) : null}
+
+      {!isClosed ? (
+        <div className="mt-6 flex flex-col items-start gap-2 border-t border-[var(--color-border)] pt-4">
+          {cancelEnquiryStep === "confirm" ? (
+            <>
+              <p className="max-w-md text-sm text-[var(--color-text-muted)]">
+                Are you sure? This will permanently close the conversation.
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void closeEnquiry()}
+                  disabled={closing}
+                  className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {closing ? "Cancelling…" : "Yes, cancel"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCancelEnquiryStep("idle")}
+                  disabled={closing}
+                  className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-border-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Keep open
+                </button>
+              </div>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setCancelEnquiryStep("confirm")}
+              className="rounded-lg border border-[var(--color-border)] bg-transparent px-2.5 py-1 text-xs font-medium text-[var(--color-text-muted)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)]"
+            >
+              Cancel enquiry
+            </button>
+          )}
+        </div>
       ) : null}
     </main>
   );

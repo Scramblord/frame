@@ -6,6 +6,29 @@ import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
+function enquiryListStatusPillClass(status: string): string {
+  const s = String(status);
+  const base = "inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium";
+  if (s === "open") {
+    return `${base} border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200`;
+  }
+  if (s === "offer_sent") {
+    return `${base} border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200`;
+  }
+  if (s === "closed") {
+    return `${base} border-zinc-200 bg-zinc-100 text-zinc-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-400`;
+  }
+  return `${base} border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]`;
+}
+
+function enquiryListStatusPillLabel(status: string): string {
+  const s = String(status);
+  if (s === "open") return "Open";
+  if (s === "offer_sent") return "Offer sent";
+  if (s === "closed") return "Closed";
+  return s.replace(/_/g, " ");
+}
+
 export default async function ExpertEnquiriesPage() {
   const supabase = await createClient();
   const {
@@ -101,7 +124,7 @@ export default async function ExpertEnquiriesPage() {
             {(enquiries ?? []).map((enquiry) => {
               const msg = lastMessageByEnquiry.get(enquiry.id);
               const preview = msg?.is_offer
-                ? "Booking offer sent"
+                ? "📋 Booking offer sent"
                 : msg?.content?.trim()
                 ? msg.content.length > 80
                   ? `${msg.content.slice(0, 80)}...`
@@ -148,9 +171,11 @@ export default async function ExpertEnquiriesPage() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-accent)]">
-                          {String(enquiry.status).replace(/_/g, " ")}
-                        </p>
+                        <span
+                          className={`${enquiryListStatusPillClass(String(enquiry.status))} justify-end`}
+                        >
+                          {enquiryListStatusPillLabel(String(enquiry.status))}
+                        </span>
                         <p className="mt-1 text-xs text-[var(--color-text-muted)]">
                           {new Date(msg?.created_at ?? enquiry.updated_at).toLocaleString(
                             "en-GB",

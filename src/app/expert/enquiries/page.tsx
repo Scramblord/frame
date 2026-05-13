@@ -21,12 +21,21 @@ function enquiryListStatusPillClass(status: string): string {
   return `${base} border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]`;
 }
 
+function titleCaseUnderscoreStatus(raw: string): string {
+  return raw
+    .split("_")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
 function enquiryListStatusPillLabel(status: string): string {
   const s = String(status);
   if (s === "open") return "Open";
   if (s === "offer_sent") return "Offer sent";
   if (s === "closed") return "Closed";
-  return s.replace(/_/g, " ");
+  if (s === "booked") return "Booked";
+  return titleCaseUnderscoreStatus(s);
 }
 
 export default async function ExpertEnquiriesPage() {

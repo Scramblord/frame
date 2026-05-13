@@ -595,7 +595,7 @@ export default function EnquiryThreadClient({
         </p>
       ) : null}
 
-      {!isClosed ? (
+      {!isClosed && status !== "booked" ? (
         <div className="mt-6 flex flex-col items-start gap-2 border-t border-[var(--color-border)] pt-4">
           {cancelEnquiryStep === "confirm" ? (
             <>

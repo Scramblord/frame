@@ -1,5 +1,3 @@
-import { PLATFORM_FEE_RATE, platformFeeFromTotal } from "@/lib/booking-pricing";
-
 export type CancelledBy = "consumer" | "expert";
 
 export type CancellationPolicy = {
@@ -105,15 +103,21 @@ export function gbpFromPence(pence: number): number {
   return Math.round(pence) / 100;
 }
 
+/**
+ * Resolved Sensei platform fee in GBP for refund calculations.
+ * Uses persisted `bookings.platform_fee` only. No fallback to a recomputed rate:
+ * commission is tiered (founding vs standard) and fixed at booking creation; inferring
+ * from a single global rate would mis-state refunds for historical rows.
+ */
 export function resolvePlatformFeeGbp(
-  totalAmountGbp: number,
+  _totalAmountGbp: number,
   platformFeeGbp: number | string | null | undefined,
 ): number {
   if (platformFeeGbp != null && platformFeeGbp !== "") {
     const n = Number(platformFeeGbp);
-    if (Number.isFinite(n)) return n;
+    if (Number.isFinite(n) && n >= 0) return n;
   }
-  return platformFeeFromTotal(totalAmountGbp);
+  return 0;
 }
 
 /** Reliability % for display; requires at least `minSessions` booked sessions. */

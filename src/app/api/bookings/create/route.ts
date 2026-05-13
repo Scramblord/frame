@@ -7,6 +7,7 @@ import {
   totalForBooking,
   type BookableSessionType,
 } from "@/lib/booking-pricing";
+import { isFoundingSensei } from "@/lib/founding-sensei";
 import {
   applyDiscountToTotal,
   bestAutomaticDiscountForService,
@@ -230,7 +231,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const platformFee = platformFeeFromTotal(discountedTotal);
+  const founding = await isFoundingSensei(supabase, expertUserId);
+  const commissionRate = founding ? 0.05 : 0.1;
+  const platformFee = platformFeeFromTotal(discountedTotal, commissionRate);
 
   const { data: inserted, error: insErr } = await supabase
     .from("bookings")

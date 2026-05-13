@@ -55,3 +55,31 @@ export async function fetchFoundingSenseiUserIds(
     .filter((k): k is string => k != null);
   return new Set(keys);
 }
+
+/**
+ * True when `expertUserId` is among the first {@link FOUNDING_LIMIT} experts with
+ * `stripe_onboarding_complete`, ordered by `created_at` then `id` (same cohort as
+ * {@link fetchFoundingSenseiUserIds}). Reads at most {@link FOUNDING_LIMIT} rows.
+ */
+export async function isFoundingSensei(
+  supabase: SupabaseClient,
+  expertUserId: string,
+): Promise<boolean> {
+  const key = foundingExpertUserIdKey(expertUserId);
+  if (!key) return false;
+
+  const { data, error } = await supabase
+    .from("expert_profiles")
+    .select("user_id")
+    .eq("stripe_onboarding_complete", true)
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
+    .limit(FOUNDING_LIMIT);
+
+  if (error || !data?.length) return false;
+
+  for (const row of data) {
+    if (foundingExpertUserIdKey(row.user_id) === key) return true;
+  }
+  return false;
+}

@@ -6,11 +6,15 @@ export type BookableSessionType =
   | "audio"
   | "video";
 
-/** FRAME commission rate (5%). */
+/** Default Sensei commission rate (5%) when no tier-specific rate is passed. */
 export const PLATFORM_FEE_RATE = 0.05;
 
-export function platformFeeFromTotal(totalGbp: number): number {
-  return Math.round(totalGbp * PLATFORM_FEE_RATE * 100) / 100;
+/** Sensei platform fee from gross total in GBP; `rate` is set at booking creation (e.g. 0.05 or 0.10). */
+export function platformFeeFromTotal(
+  totalGbp: number,
+  rate = 0.05,
+): number {
+  return Math.round(totalGbp * rate * 100) / 100;
 }
 
 /**

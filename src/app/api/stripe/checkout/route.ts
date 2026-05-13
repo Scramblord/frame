@@ -110,6 +110,12 @@ export async function POST(request: Request) {
   }
 
   const amountPence = gbpToPence(originalTotal);
+  const platformFeeRaw = Number(booking.platform_fee);
+  const platformFee =
+    Number.isFinite(platformFeeRaw) && platformFeeRaw > 0 ? platformFeeRaw : 0;
+  const feePence = gbpToPence(platformFee);
+  const chargedAmountPence = gbpToPence(Number(booking.total_amount));
+  const cappedFeePence = Math.min(feePence, chargedAmountPence - 1);
   const expertStripeAccountId = expertProfile.stripe_account_id;
   const { data: discountRows } = await supabase
     .from("discounts")
@@ -137,8 +143,8 @@ export async function POST(request: Request) {
           unit_amount: amountPence,
           product_data: {
             name: service?.name
-              ? `FRAME — ${service.name}`
-              : "FRAME session",
+              ? `Sensei — ${service.name}`
+              : "Sensei session",
             metadata: {
               booking_id: booking.id,
             },
@@ -147,6 +153,10 @@ export async function POST(request: Request) {
       },
     ],
     payment_intent_data: {
+      application_fee_amount: cappedFeePence > 0 ? cappedFeePence : undefined,
+      transfer_data: {
+        destination: expertStripeAccountId,
+      },
       metadata: {
         booking_id: booking.id,
         expert_stripe_account_id: expertStripeAccountId,

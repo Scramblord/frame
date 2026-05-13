@@ -1,4 +1,3 @@
-import { platformFeeFromTotal } from "@/lib/booking-pricing";
 import { formatGbpFromStripeAmount, getUserEmail, sendEmail } from "@/lib/email";
 import { payoutSent } from "@/lib/email-templates";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
@@ -229,10 +228,19 @@ export async function processBookingPayout(
   };
 
   const totalGbp = Number(booking.total_amount);
-  let platformGbp =
-    booking.platform_fee != null && Number.isFinite(Number(booking.platform_fee))
+  let platformGbp = 0;
+  const pfNum =
+    booking.platform_fee != null && booking.platform_fee !== ""
       ? Number(booking.platform_fee)
-      : platformFeeFromTotal(totalGbp);
+      : NaN;
+  if (Number.isFinite(pfNum) && pfNum >= 0) {
+    platformGbp = pfNum;
+  } else {
+    console.error(
+      "[frame:processBookingPayout] missing or invalid platform_fee on booking — using 0; commission must be set at booking creation",
+      { bookingId },
+    );
+  }
   if (!Number.isFinite(totalGbp) || totalGbp < 0) {
     console.warn("[frame:processBookingPayout] invalid amount → not_applicable", {
       bookingId,

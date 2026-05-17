@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   const { data: booking, error: bookingErr } = await supabase
     .from("bookings")
     .select(
-      "id, expert_user_id, session_type, messaging_closed_at, messaging_closure_requested_at, status",
+      "id, expert_user_id, consumer_user_id, session_type, messaging_closed_at, messaging_closure_requested_at, status",
     )
     .eq("id", bookingId)
     .maybeSingle();
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Booking not found" }, { status: 404 });
   }
 
-  if (booking.expert_user_id !== user.id) {
+  if (booking.expert_user_id !== user.id && booking.consumer_user_id !== user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -84,7 +84,6 @@ export async function POST(request: Request) {
       messaging_closure_requested_at: new Date().toISOString(),
     })
     .eq("id", bookingId)
-    .eq("expert_user_id", user.id)
     .is("messaging_closed_at", null)
     .in("status", ["confirmed", "in_progress"])
     .select("id")

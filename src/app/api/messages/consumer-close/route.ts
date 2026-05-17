@@ -1,10 +1,11 @@
+import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-type CloseBody = {
+type ConsumerCloseBody = {
   bookingId?: string;
 };
 
@@ -18,9 +19,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: CloseBody;
+  let body: ConsumerCloseBody;
   try {
-    body = (await request.json()) as CloseBody;
+    body = (await request.json()) as ConsumerCloseBody;
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
   const { data: booking, error: bookingErr } = await supabase
     .from("bookings")
     .select(
-      "id, expert_user_id, session_type, messaging_closed_at, messaging_closure_requested_at, status",
+      "id, consumer_user_id, session_type, messaging_closed_at, status",
     )
     .eq("id", bookingId)
     .maybeSingle();
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Booking not found" }, { status: 404 });
   }
 
-  if (booking.expert_user_id !== user.id) {
+  if (booking.consumer_user_id !== user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -66,26 +67,32 @@ export async function POST(request: Request) {
 
   if (booking.status !== "confirmed" && booking.status !== "in_progress") {
     return NextResponse.json(
-      { error: "Booking is not eligible for closure request" },
+      { error: "Booking is not eligible for closure" },
       { status: 400 },
     );
   }
 
-  if (booking.messaging_closure_requested_at != null) {
-    return NextResponse.json(
-      { ok: true, status: "closure_requested" },
-      { status: 200 },
-    );
-  }
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("user_id", user.id)
+    .maybeSingle();
 
-  const { data: updated, error: updErr } = await supabase
+  const consumerName = profile?.full_name?.trim() || "Client";
+  const now = new Date().toISOString();
+  const content = `${consumerName} ended this conversation.`;
+
+  const admin = createServiceRoleClient();
+
+  const { data: updated, error: updErr } = await admin
     .from("bookings")
     .update({
-      messaging_closure_requested_at: new Date().toISOString(),
-      messaging_closure_requested_by: "expert",
+      messaging_closed_at: now,
+      messaging_closure_requested_by: "consumer",
+      status: "completed",
     })
     .eq("id", bookingId)
-    .eq("expert_user_id", user.id)
+    .eq("consumer_user_id", user.id)
     .is("messaging_closed_at", null)
     .in("status", ["confirmed", "in_progress"])
     .select("id")
@@ -93,17 +100,33 @@ export async function POST(request: Request) {
 
   if (updErr) {
     return NextResponse.json(
-      { error: "Could not request closure" },
+      { error: "Could not close conversation" },
       { status: 500 },
     );
   }
 
   if (!updated) {
     return NextResponse.json(
-      { error: "Could not request closure" },
+      { error: "Could not close conversation" },
       { status: 400 },
     );
   }
 
-  return NextResponse.json({ ok: true, status: "closure_requested" });
+  const { error: msgErr } = await admin.from("messages").insert({
+    booking_id: bookingId,
+    sender_id: user.id,
+    content,
+    sender_role: "system",
+    created_at: now,
+  });
+
+  if (msgErr) {
+    console.error("[frame:messages/consumer-close] message insert error", msgErr);
+    return NextResponse.json(
+      { error: "Conversation closed but system message failed" },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json({ ok: true });
 }

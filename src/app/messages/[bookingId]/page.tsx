@@ -22,7 +22,7 @@ export default async function MessagingPage({ params }: PageProps) {
   const { data: booking, error: bErr } = await supabase
     .from("bookings")
     .select(
-      "id, consumer_user_id, expert_user_id, service_id, session_type, status, messaging_message_count, messaging_closed_at, messaging_closure_requested_at, messaging_sla_deadline, messaging_first_reply_at",
+      "id, consumer_user_id, expert_user_id, service_id, session_type, status, messaging_message_count, messaging_closed_at, messaging_closure_requested_at, messaging_closure_requested_by, messaging_sla_deadline, messaging_first_reply_at",
     )
     .eq("id", bookingId)
     .maybeSingle();
@@ -108,10 +108,21 @@ export default async function MessagingPage({ params }: PageProps) {
         sessionTypeLabel={sessionTypeLabel}
         bookingStatus={booking.status}
         initialMessages={messages ?? []}
+        closureRequestedBy={
+          booking.messaging_closure_requested_by === "expert" ||
+          booking.messaging_closure_requested_by === "consumer"
+            ? booking.messaging_closure_requested_by
+            : null
+        }
         initialMeta={{
           messaging_message_count: booking.messaging_message_count ?? 0,
           messaging_closed_at: booking.messaging_closed_at,
           messaging_closure_requested_at: booking.messaging_closure_requested_at,
+          messaging_closure_requested_by:
+            booking.messaging_closure_requested_by === "expert" ||
+            booking.messaging_closure_requested_by === "consumer"
+              ? booking.messaging_closure_requested_by
+              : null,
           messaging_sla_deadline: booking.messaging_sla_deadline,
           messaging_first_reply_at: booking.messaging_first_reply_at,
         }}

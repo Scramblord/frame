@@ -13,13 +13,14 @@ export type ThreadMessage = {
   sender_id: string;
   content: string;
   created_at: string;
-  sender_role: "consumer" | "expert";
+  sender_role: "consumer" | "expert" | "system";
 };
 
 export type ThreadMeta = {
   messaging_message_count: number;
   messaging_closed_at: string | null;
   messaging_closure_requested_at: string | null;
+  messaging_closure_requested_by: "expert" | "consumer" | null;
   messaging_sla_deadline: string | null;
   messaging_first_reply_at: string | null;
 };
@@ -34,6 +35,7 @@ type Props = {
   serviceName: string;
   sessionTypeLabel: "Messaging" | "Urgent messaging";
   bookingStatus: string;
+  closureRequestedBy: "expert" | "consumer" | null;
   initialMessages: ThreadMessage[];
   initialMeta: ThreadMeta;
 };
@@ -77,6 +79,7 @@ export function MessagingThreadClient({
   serviceName,
   sessionTypeLabel,
   bookingStatus,
+  closureRequestedBy: initialClosureRequestedBy,
   initialMessages,
   initialMeta,
 }: Props) {
@@ -91,6 +94,7 @@ export function MessagingThreadClient({
     "yes" | "no" | null
   >(null);
   const [closeError, setCloseError] = useState<string | null>(null);
+  const [consumerEndStep, setConsumerEndStep] = useState<"idle" | "confirm">("idle");
   const [nowTick, setNowTick] = useState(() => Date.now());
 
   const messageCount = meta.messaging_message_count ?? 0;
@@ -101,6 +105,8 @@ export function MessagingThreadClient({
     bookingStatus === "no_show";
   const atCap = messageCount >= MESSAGE_CAP;
   const closureRequested = meta.messaging_closure_requested_at != null;
+  const closureRequestedBy =
+    meta.messaging_closure_requested_by ?? initialClosureRequestedBy;
   const baseOpen =
     !isClosed &&
     !atCap &&
@@ -114,47 +120,20 @@ export function MessagingThreadClient({
   const showNearLimit =
     messageCount >= 10 && messageCount < MESSAGE_CAP && canCompose;
 
-  const lastRealMessage = useMemo(() => {
-    const real = messages.filter((m) => !m.id.startsWith("temp-"));
-    return real.length > 0 ? real[real.length - 1]! : null;
-  }, [messages]);
-
-  const closureInitiatedByConsumer =
-    lastRealMessage == null || lastRealMessage.sender_role === "consumer";
-  const closureInitiatedByExpert =
-    lastRealMessage != null && lastRealMessage.sender_role === "expert";
-
-  const bookingAllowsClosure =
-    bookingStatus === "confirmed" || bookingStatus === "in_progress";
-
   const showExpertResolve =
-    role === "expert" &&
-    baseOpen &&
-    !closureRequested &&
-    bookingAllowsClosure;
+    role === "expert" && baseOpen && !closureRequested;
   const showConsumerEndConversation =
-    role === "consumer" &&
-    baseOpen &&
-    !closureRequested &&
-    bookingAllowsClosure;
+    role === "consumer" && baseOpen && !closureRequested;
   const showExpertAwaitingConfirmation =
     role === "expert" &&
     baseOpen &&
     closureRequested &&
-    bookingAllowsClosure &&
-    closureInitiatedByExpert;
-  const showExpertConsumerClosureBanner =
-    role === "expert" &&
-    baseOpen &&
-    closureRequested &&
-    bookingAllowsClosure &&
-    closureInitiatedByConsumer;
+    closureRequestedBy === "expert";
   const showConsumerClosureBanner =
     role === "consumer" &&
     baseOpen &&
     closureRequested &&
-    bookingAllowsClosure &&
-    closureInitiatedByExpert;
+    closureRequestedBy === "expert";
 
   const slaDeadlineMs = meta.messaging_sla_deadline
     ? new Date(meta.messaging_sla_deadline).getTime()
@@ -282,10 +261,58 @@ export function MessagingThreadClient({
         setCloseError(json.error ?? "Could not request closure");
         return;
       }
+      setMeta((prev) => ({
+        ...prev,
+        messaging_closure_requested_at: new Date().toISOString(),
+        messaging_closure_requested_by: "expert",
+      }));
       await refreshThread();
       router.refresh();
     } catch {
       setCloseError("Could not request closure");
+    } finally {
+      setCloseLoading(false);
+    }
+  };
+
+  const handleConsumerClose = async () => {
+    setCloseError(null);
+    setCloseLoading(true);
+    try {
+      const res = await fetch("/api/messages/consumer-close", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        setCloseError(json.error ?? "Could not end conversation");
+        return;
+      }
+      const closedAt = new Date().toISOString();
+      const systemContent = `${consumerDisplayName} ended this conversation.`;
+      setMeta((prev) => ({
+        ...prev,
+        messaging_closed_at: closedAt,
+        messaging_closure_requested_by: "consumer",
+        messaging_closure_requested_at: null,
+      }));
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `system-${Date.now()}`,
+          booking_id: bookingId,
+          sender_id: currentUserId,
+          content: systemContent,
+          created_at: closedAt,
+          sender_role: "system",
+        },
+      ]);
+      setConsumerEndStep("idle");
+      await refreshThread();
+      router.refresh();
+    } catch {
+      setCloseError("Could not end conversation");
     } finally {
       setCloseLoading(false);
     }
@@ -309,6 +336,7 @@ export function MessagingThreadClient({
         setMeta((prev) => ({
           ...prev,
           messaging_closure_requested_at: null,
+          messaging_closure_requested_by: null,
         }));
       }
       await refreshThread();
@@ -412,6 +440,15 @@ export function MessagingThreadClient({
         ) : (
           <ul className="flex flex-col gap-3">
             {messages.map((m) => {
+              if (m.sender_role === "system") {
+                return (
+                  <li key={m.id} className="flex w-full justify-center">
+                    <p className="max-w-[90%] text-center text-xs italic text-zinc-500 dark:text-zinc-400">
+                      {m.content}
+                    </p>
+                  </li>
+                );
+              }
               const isExpert = m.sender_role === "expert";
               const label = isExpert ? expertDisplayName : consumerDisplayName;
               return (
@@ -449,8 +486,7 @@ export function MessagingThreadClient({
           role="status"
         >
           <p>
-            Your expert has marked this conversation as resolved. Are you
-            satisfied with the response?
+            Your Sensei has marked this as resolved. Are you satisfied?
           </p>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
             <button
@@ -472,45 +508,6 @@ export function MessagingThreadClient({
               {consumerConfirmLoading === "no"
                 ? "Updating…"
                 : "I still have questions"}
-            </button>
-          </div>
-          {closeError ? (
-            <p className="mt-2 text-sm text-rose-700 dark:text-rose-300">
-              {closeError}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-
-      {showExpertConsumerClosureBanner ? (
-        <div
-          className="mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
-          role="status"
-        >
-          <p>
-            Your student has requested to close this conversation. Confirm to
-            close the thread and release payment.
-          </p>
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <button
-              type="button"
-              onClick={() => void handleConfirmClose(true)}
-              disabled={consumerConfirmLoading != null}
-              className="rounded-xl bg-amber-700 px-3 py-2 text-sm font-semibold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-amber-500 dark:text-zinc-950 dark:hover:bg-amber-400"
-            >
-              {consumerConfirmLoading === "yes"
-                ? "Closing…"
-                : "Yes, close thread"}
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleConfirmClose(false)}
-              disabled={consumerConfirmLoading != null}
-              className="rounded-xl border border-amber-400 bg-amber-100 px-3 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-60 dark:border-amber-600 dark:bg-transparent dark:text-amber-100 dark:hover:bg-amber-900/40"
-            >
-              {consumerConfirmLoading === "no"
-                ? "Updating…"
-                : "Keep open"}
             </button>
           </div>
           {closeError ? (
@@ -569,14 +566,40 @@ export function MessagingThreadClient({
 
       {showConsumerEndConversation ? (
         <div className="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-700">
-          <button
-            type="button"
-            onClick={() => void handleCloseThread()}
-            disabled={closeLoading}
-            className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
-          >
-            {closeLoading ? "Requesting…" : "End conversation"}
-          </button>
+          {consumerEndStep === "confirm" ? (
+            <>
+              <p className="text-sm text-zinc-600 dark:text-zinc-300">
+                Are you sure? This will close the conversation and release payment
+                to your Sensei.
+              </p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => void handleConsumerClose()}
+                  disabled={closeLoading}
+                  className="rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                >
+                  {closeLoading ? "Ending…" : "Yes, end it"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConsumerEndStep("idle")}
+                  disabled={closeLoading}
+                  className="rounded-xl border border-zinc-300 bg-zinc-50 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                >
+                  Keep open
+                </button>
+              </div>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConsumerEndStep("confirm")}
+              className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+            >
+              End conversation
+            </button>
+          )}
           {closeError ? (
             <p className="mt-2 text-center text-sm text-rose-600 dark:text-rose-400">
               {closeError}

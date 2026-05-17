@@ -241,7 +241,7 @@ export default async function Home() {
               </p>
             </div>
             <Link
-              href="/login"
+              href="/become-a-sensei"
               className="shrink-0 rounded-xl bg-[var(--color-accent)] px-6 py-3 text-sm font-semibold text-white shadow-[var(--shadow-sm)] transition hover:bg-[var(--color-accent-hover)]"
             >
               Become a Sensei →
@@ -386,7 +386,7 @@ export default async function Home() {
           </div>
 
           <Link
-            href="/login"
+            href="/become-a-sensei"
             className="mt-6 inline-flex rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-[var(--color-navbar-dark)] transition hover:bg-zinc-100"
           >
             Apply to become a Sensei

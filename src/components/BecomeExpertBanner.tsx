@@ -51,7 +51,7 @@ export default function BecomeExpertBanner({
         </p>
         <div className="flex items-center gap-2">
           <Link
-            href="/expert/setup"
+            href="/become-a-sensei"
             className="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-300 bg-white px-3 text-sm font-semibold text-zinc-900 transition hover:border-zinc-400 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/60 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-500 dark:hover:bg-zinc-800 dark:focus-visible:ring-zinc-500/70"
           >
             Become a Sensei
